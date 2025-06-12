@@ -81,16 +81,46 @@ export default function UnifiedOrdersPage() {
 
       const orders = data || [];
 
-      // Separate completed and pending orders
-      const completed = orders.filter(order => 
-        order.payment_status !== 'payment_pending' && 
-        !(order.payment_method === 'mercadopago' && order.payment_status === 'pending')
-      );
+      // LÓGICA CORREGIDA: Separar pedidos completados y pendientes
+      const completed = orders.filter(order => {
+        // Criterio 1: Pago contra entrega (siempre completado)
+        if (order.payment_method === 'cash_on_delivery') {
+          return true;
+        }
+        
+        // Criterio 2: MercadoPago con pago aprobado
+        if (order.payment_method === 'mercadopago' && order.payment_status === 'paid') {
+          return true;
+        }
+        
+        // Todos los demás casos van a pendientes
+        return false;
+      });
 
-      const pending = orders.filter(order => 
-        order.payment_status === 'payment_pending' || 
-        (order.payment_method === 'mercadopago' && order.payment_status === 'pending')
-      );
+      const pending = orders.filter(order => {
+        // Criterio 1: Pago contra entrega (nunca pendiente)
+        if (order.payment_method === 'cash_on_delivery') {
+          return false;
+        }
+        
+        // Criterio 2: MercadoPago con pago aprobado (nunca pendiente)
+        if (order.payment_method === 'mercadopago' && order.payment_status === 'paid') {
+          return false;
+        }
+        
+        // Criterio 3: Todos los demás casos de MercadoPago van a pendientes
+        if (order.payment_method === 'mercadopago') {
+          return (
+            order.payment_status === 'pending' ||
+            order.payment_status === 'payment_pending' ||
+            order.payment_status === 'failed' ||
+            !order.payment_status
+          );
+        }
+        
+        // Cualquier otro caso va a pendientes por seguridad
+        return true;
+      });
 
       setCompletedOrders(completed);
       setPendingOrders(pending);
@@ -421,7 +451,8 @@ export default function UnifiedOrdersPage() {
                         </div>
                         <div className="bg-orange-50 rounded-lg p-4 text-center">
                           <div className="text-lg font-bold text-orange-600">
-                            {order.payment_status === 'paid' ? 'Pagado' : 'Pendiente'}
+                            {order.payment_method === 'cash_on_delivery' ? 'Al entregar' : 
+                             order.payment_status === 'paid' ? 'Pagado' : 'Pendiente'}
                           </div>
                           <div className="text-sm text-orange-700">Estado del pago</div>
                         </div>
@@ -611,7 +642,7 @@ export default function UnifiedOrdersPage() {
                               </h3>
                             </div>
                             <div className="px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800">
-                              Pago Pendiente
+                              {order.payment_status === 'failed' ? 'Pago Fallido' : 'Pago Pendiente'}
                             </div>
                           </div>
                           <div className="flex items-center gap-2 text-sm text-orange-700">
