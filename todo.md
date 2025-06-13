@@ -11,7 +11,7 @@
 
 ## Fase 3: Implementación de la solución
 - [x] Instalar el SDK de Mercado Pago para JavaScript.
-- [ ] Modificar el código para usar el SDK de Mercado Pago.
+- [x] Modificar el código para usar el SDK de Mercado Pago.
 
 ## Fase 4: Verificación y despliegue
 - [ ] Realizar pruebas exhaustivas en diferentes navegadores (especialmente Safari y Chrome).
