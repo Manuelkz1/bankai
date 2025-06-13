@@ -15,6 +15,7 @@ import UnifiedOrdersPage from './pages/UnifiedOrdersPage';
 import MyFavoritesPage from './pages/MyFavoritesPage';
 import PendingPaymentsPage from './pages/PendingPaymentsPage';
 import { PaymentStatus } from './components/PaymentStatus';
+import WhatsAppButton from './components/WhatsAppButton';
 
 // Componente para manejar el callback de autenticación
 const AuthCallback = () => {
@@ -115,8 +116,7 @@ function App() {
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+      <WhatsAppButton />
     </Router>
-  );
-}
 
-export default App;
+
