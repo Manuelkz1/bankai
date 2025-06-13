@@ -22,6 +22,7 @@ export default function PendingPaymentsPage() {
   const { user } = useAuthStore();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [processingOrder, setProcessingOrder] = useState<string | null>(null);
 
   useEffect(() => {
@@ -33,6 +34,7 @@ export default function PendingPaymentsPage() {
 
     try {
       setLoading(true);
+      setError(null);
 
       // Cargar pedidos con payment_pending o mercadopago pending sin URL de pago
       const { data, error } = await supabase
@@ -56,14 +58,14 @@ export default function PendingPaymentsPage() {
 
       if (error) {
         console.error('Error loading pending orders:', error);
-        toast.error('Error al cargar pedidos pendientes');
+        setError('Error al cargar los pedidos pendientes');
         return;
       }
 
       setOrders(data || []);
     } catch (error) {
       console.error('Error loading pending orders:', error);
-      toast.error('Error al cargar pedidos pendientes');
+      setError('Error al cargar los pedidos pendientes');
     } finally {
       setLoading(false);
     }
@@ -74,47 +76,36 @@ export default function PendingPaymentsPage() {
 
     try {
       // Recrear preferencia de pago de MercadoPago
-      const response = await fetch('/api/create-payment-preference', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const { data: payment, error: paymentError } = await supabase.functions.invoke('create-payment', {
+        body: {
           orderId: order.id,
           items: order.order_items?.map(item => ({
-            title: item.products.name,
-            quantity: item.quantity,
-            unit_price: item.price_at_time,
+            product: {
+              name: item.products.name,
+              price: Number(item.price_at_time)
+            },
+            quantity: item.quantity
           })) || [],
-          payer: {
-            email: order.guest_info?.email || user?.email,
-            name: order.shipping_address.full_name,
-            phone: order.shipping_address.phone,
-          }
-        })
+          total: order.total
+        }
       });
 
-      if (response.ok) {
-        const { init_point } = await response.json();
-
-        // Actualizar la orden con la nueva URL de pago
-        await supabase
-          .from('orders')
-          .update({ 
-            payment_url: init_point,
-            payment_status: 'pending'
-          })
-          .eq('id', order.id);
-
-        // Redirigir a MercadoPago
-        window.open(init_point, '_blank');
-        toast.success('Redirigiendo a MercadoPago...');
-
-        // Refrescar la lista después de un momento
-        setTimeout(loadPendingOrders, 2000);
-      } else {
-        toast.error('Error al crear el pago');
+      if (paymentError || !payment?.init_point) {
+        throw new Error(paymentError?.message || 'Error al crear preferencia de pago');
       }
+
+      await supabase
+        .from('orders')
+        .update({ 
+          payment_url: payment.init_point,
+          payment_status: 'pending'
+        })
+        .eq('id', order.id);
+
+      window.open(payment.init_point, '_blank');
+      toast.success('Redirigiendo a MercadoPago...');
+
+      setTimeout(loadPendingOrders, 2000);
     } catch (error) {
       console.error('Error retrying payment:', error);
       toast.error('Error al procesar el pago');
@@ -129,21 +120,33 @@ export default function PendingPaymentsPage() {
     }
 
     try {
+      setLoading(true);
+      
+      // Update the order status to 'cancelled'
       const { error } = await supabase
         .from('orders')
-        .update({ status: 'cancelled' })
+        .update({ 
+          status: 'cancelled',
+          payment_status: 'failed',
+          updated_at: new Date().toISOString()
+        })
         .eq('id', orderId);
 
       if (error) {
+        console.error('Error cancelling order:', error);
         toast.error('Error al cancelar el pedido');
         return;
       }
-
-      toast.success('Pedido cancelado');
-      loadPendingOrders();
+      
+      // Remove the order from the local state
+      setOrders(prevOrders => prevOrders.filter(order => order.id !== orderId));
+      
+      toast.success('Pedido cancelado exitosamente');
     } catch (error) {
       console.error('Error cancelling order:', error);
       toast.error('Error al cancelar el pedido');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -168,6 +171,23 @@ export default function PendingPaymentsPage() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+          <p className="text-gray-600">{error}</p>
+          <button 
+            onClick={loadPendingOrders}
+            className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            Reintentar
+          </button>
+        </div>
       </div>
     );
   }

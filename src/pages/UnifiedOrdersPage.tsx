@@ -190,21 +190,33 @@ export default function UnifiedOrdersPage() {
     }
 
     try {
+      setLoading(true);
+      
+      // Update the order status to 'cancelled'
       const { error } = await supabase
         .from('orders')
-        .update({ status: 'cancelled' })
+        .update({ 
+          status: 'cancelled',
+          payment_status: 'failed',
+          updated_at: new Date().toISOString()
+        })
         .eq('id', orderId);
 
       if (error) {
+        console.error('Error cancelling order:', error);
         toast.error('Error al cancelar el pedido');
         return;
       }
-
-      toast.success('Pedido cancelado');
-      loadOrders();
+      
+      // Reload orders to reflect the changes
+      await loadOrders();
+      
+      toast.success('Pedido cancelado exitosamente');
     } catch (error) {
       console.error('Error cancelling order:', error);
       toast.error('Error al cancelar el pedido');
+    } finally {
+      setLoading(false);
     }
   };
 

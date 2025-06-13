@@ -191,17 +191,31 @@ const OrderManager: React.FC = () => {
 
   const handleUpdateOrderStatus = async (orderId: string, status: Order['status']) => {
     try {
+      setLoading(true);
+      
       const { error } = await supabase
         .from('orders')
-        .update({ status })
+        .update({ 
+          status,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', orderId);
 
       if (error) throw error;
-      toast.success('Estado del pedido actualizado');
-      loadOrders();
+      
+      // Update the order in the local state
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === orderId ? { ...order, status } : order
+        )
+      );
+      
+      toast.success(`Estado del pedido actualizado a "${ORDER_STATUS_MAP[status]?.label || status}"`);
     } catch (error: any) {
       console.error('Error updating order status:', error);
       toast.error('Error al actualizar el estado del pedido');
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -603,6 +617,62 @@ const OrderManager: React.FC = () => {
             <div className="border-t border-gray-200 py-4">
               <h4 className="text-sm font-medium text-gray-500 mb-2">Notas</h4>
               <p className="text-sm text-gray-900">{selectedOrder.notes || 'Sin notas'}</p>
+            </div>
+
+            <div className="border-t border-gray-200 py-4">
+              <h4 className="text-sm font-medium text-gray-500 mb-2">Actualizar Estado</h4>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => {
+                    handleUpdateOrderStatus(selectedOrder.id, 'pending');
+                    setSelectedOrder({...selectedOrder, status: 'pending'});
+                  }}
+                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-yellow-700 bg-yellow-100 hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+                >
+                  <Clock className="h-4 w-4 mr-2" />
+                  Pendiente
+                </button>
+                <button
+                  onClick={() => {
+                    handleUpdateOrderStatus(selectedOrder.id, 'processing');
+                    setSelectedOrder({...selectedOrder, status: 'processing'});
+                  }}
+                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <CreditCard className="h-4 w-4 mr-2" />
+                  Procesando
+                </button>
+                <button
+                  onClick={() => {
+                    handleUpdateOrderStatus(selectedOrder.id, 'shipped');
+                    setSelectedOrder({...selectedOrder, status: 'shipped'});
+                  }}
+                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-purple-700 bg-purple-100 hover:bg-purple-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                >
+                  <TruckIcon className="h-4 w-4 mr-2" />
+                  Enviado
+                </button>
+                <button
+                  onClick={() => {
+                    handleUpdateOrderStatus(selectedOrder.id, 'delivered');
+                    setSelectedOrder({...selectedOrder, status: 'delivered'});
+                  }}
+                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Entregado
+                </button>
+                <button
+                  onClick={() => {
+                    handleUpdateOrderStatus(selectedOrder.id, 'cancelled');
+                    setSelectedOrder({...selectedOrder, status: 'cancelled'});
+                  }}
+                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-red-700 bg-red-100 hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                >
+                  <XCircle className="h-4 w-4 mr-2" />
+                  Cancelado
+                </button>
+              </div>
             </div>
 
             <div className="flex justify-end mt-4">
