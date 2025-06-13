@@ -6,6 +6,7 @@ export interface CartItem {
   product: Product;
   quantity: number;
   selectedColor?: string;
+  selectedSize?: string;
 }
 
 interface CartStore {
@@ -13,7 +14,7 @@ interface CartStore {
   isOpen: boolean;
   total: number;
   
-  addItem: (product: Product, quantity: number, selectedColor?: string) => void;
+  addItem: (product: Product, quantity: number, selectedColor?: string, selectedSize?: string) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
@@ -29,16 +30,19 @@ export const useCartStore = create<CartStore>()(
       isOpen: false,
       total: 0,
 
-      addItem: (product, quantity = 1, selectedColor) => {
+      addItem: (product, quantity = 1, selectedColor, selectedSize) => {
         const items = [...get().items];
         const existingItemIndex = items.findIndex(
-          item => item.product.id === product.id && item.selectedColor === selectedColor
+          item => 
+            item.product.id === product.id && 
+            item.selectedColor === selectedColor &&
+            item.selectedSize === selectedSize
         );
 
         if (existingItemIndex >= 0) {
           items[existingItemIndex].quantity += quantity;
         } else {
-          items.push({ product, quantity, selectedColor });
+          items.push({ product, quantity, selectedColor, selectedSize });
         }
 
         set({ items });

@@ -11,22 +11,30 @@ export interface Product {
   shipping_days?: string; // Días hábiles de envío (ej: "10", "10-15", "5-7")
   instructions_file?: string;
   available_colors?: string[];
-  color_images?: {
-    color: string;
-    image: string;
-  }[];
+  available_sizes?: string[];
+  show_colors?: boolean;
+  show_sizes?: boolean;
+  color_images?: ColorImage[];
   allowed_payment_methods?: {
     cash_on_delivery: boolean;
     card: boolean;
     payment_url?: string;
   };
   promotion?: Promotion;
+  show_delivery_time?: boolean;
+  delivery_time?: string;
+}
+
+export interface ColorImage {
+  color: string;
+  image: string;
 }
 
 export interface CartItem {
   product: Product;
   quantity: number;
   selectedColor?: string;
+  selectedSize?: string;
 }
 
 export interface Order {
@@ -58,6 +66,7 @@ export interface Order {
     quantity: number;
     price_at_time: number;
     selected_color?: string;
+    selected_size?: string;
     products: {
       id: string;
       name: string;

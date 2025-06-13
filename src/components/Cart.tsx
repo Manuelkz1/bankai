@@ -14,8 +14,8 @@ export default function Cart() {
     target.src = 'https://via.placeholder.com/96x96/f3f4f6/9ca3af?text=Sin+imagen';
   };
 
-  const handleRemoveItem = async (productId: string, selectedColor?: string) => {
-    const itemKey = `${productId}-${selectedColor || ''}`;
+  const handleRemoveItem = async (productId: string, selectedColor?: string, selectedSize?: string) => {
+    const itemKey = `${productId}-${selectedColor || ''}-${selectedSize || ''}`;
     setRemovingItems(prev => new Set([...prev, itemKey]));
     
     // Pequeña animación antes de remover
@@ -107,7 +107,7 @@ export default function Cart() {
               <div className="flex-1 overflow-y-auto">
                 <div className="px-6 py-4 space-y-4">
                   {cartStore.items.map((item) => {
-                    const itemKey = `${item.product.id}-${item.selectedColor || ''}`;
+                    const itemKey = `${item.product.id}-${item.selectedColor || ''}-${item.selectedSize || ''}`;
                     const isRemoving = removingItems.has(itemKey);
                     
                     return (
@@ -144,15 +144,22 @@ export default function Cart() {
                                   {item.product.name}
                                 </h3>
                                 
-                                {/* Color seleccionado */}
-                                {item.selectedColor && (
-                                  <div className="flex items-center space-x-2 mb-2">
-                                    <span className="text-xs text-gray-500">Color:</span>
+                                {/* Atributos seleccionados */}
+                                <div className="flex flex-wrap gap-2 mb-2">
+                                  {/* Color seleccionado */}
+                                  {item.selectedColor && (
                                     <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
-                                      {item.selectedColor}
+                                      Color: {item.selectedColor}
                                     </span>
-                                  </div>
-                                )}
+                                  )}
+                                  
+                                  {/* Talla seleccionada */}
+                                  {item.selectedSize && (
+                                    <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
+                                      Talla: {item.selectedSize}
+                                    </span>
+                                  )}
+                                </div>
 
                                 {/* Promoción activa */}
                                 {item.product.promotion && (
@@ -214,7 +221,7 @@ export default function Cart() {
                               
                               {/* Botón eliminar mejorado */}
                               <button
-                                onClick={() => handleRemoveItem(item.product.id, item.selectedColor)}
+                                onClick={() => handleRemoveItem(item.product.id, item.selectedColor, item.selectedSize)}
                                 className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded-lg transition-all duration-200 group"
                                 disabled={isRemoving}
                               >

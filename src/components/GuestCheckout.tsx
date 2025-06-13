@@ -140,7 +140,8 @@ export function GuestCheckout() {
         product_id: item.product.id,
         quantity: item.quantity,
         price_at_time: item.product.price,
-        selected_color: item.selectedColor
+        selected_color: item.selectedColor,
+        selected_size: item.selectedSize
       }));
 
       const { error: itemsError } = await supabase
@@ -587,7 +588,7 @@ export function GuestCheckout() {
               <div className="flow-root">
                 <ul role="list" className="-my-6 divide-y divide-gray-200">
                   {cartStore.items.map((item) => (
-                    <li key={`${item.product.id}-${item.selectedColor || ''}`} className="py-6 flex">
+                    <li key={`${item.product.id}-${item.selectedColor || ''}-${item.selectedSize || ''}`} className="py-6 flex">
                       <div className="flex-shrink-0 w-24 h-24 border border-gray-200 rounded-md overflow-hidden">
                         <img
                           src={item.product.images[0]}
@@ -602,9 +603,18 @@ export function GuestCheckout() {
                             <h3>{item.product.name}</h3>
                             <p className="ml-4">${(item.product.price * item.quantity).toFixed(2)}</p>
                           </div>
-                          {item.selectedColor && (
-                            <p className="mt-1 text-sm text-gray-500">Color: {item.selectedColor}</p>
-                          )}
+                          <div className="mt-1 flex flex-wrap gap-2">
+                            {item.selectedColor && (
+                              <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
+                                Color: {item.selectedColor}
+                              </span>
+                            )}
+                            {item.selectedSize && (
+                              <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
+                                Talla: {item.selectedSize}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="flex-1 flex items-end justify-between text-sm">
                           <p className="text-gray-500">Cantidad: {item.quantity}</p>

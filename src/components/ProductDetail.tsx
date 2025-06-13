@@ -2,21 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { toast } from 'react-hot-toast';
-import { ArrowLeft, FileText, Share2, Tag, Clock } from 'lucide-react';
+import { ArrowLeft, FileText, Share2, Tag, Clock, Check } from 'lucide-react';
 import type { Product } from '../types/index';
 import { useCartStore } from '../stores/cartStore';
 import { useAuthStore } from '../stores/authStore';
 import { ProductReviews } from './ProductReviews';
+import { useFavoritesStore } from '../stores/favoritesStore';
 
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const cartStore = useCartStore();
   const { user } = useAuthStore();
+  const favoritesStore = useFavoritesStore();
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState<string>('');
   const [selectedColor, setSelectedColor] = useState<string>('');
+  const [selectedSize, setSelectedSize] = useState<string>('');
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [quantity, setQuantity] = useState<number>(1);
 
@@ -40,16 +43,24 @@ export default function ProductDetail() {
       if (data?.images?.length > 0) {
         setSelectedImage(data.images[0]);
       }
-      if (data?.available_colors?.length > 0) {
+      
+      // Si hay colores disponibles, seleccionar el primero por defecto
+      if (data?.show_colors && data?.available_colors?.length > 0) {
         const firstColor = data.available_colors[0];
         setSelectedColor(firstColor);
         
+        // Si hay imágenes específicas para este color, mostrarla
         if (data.color_images && data.color_images.length > 0) {
           const colorImage = data.color_images.find(ci => ci.color === firstColor);
           if (colorImage && colorImage.image) {
             setSelectedImage(colorImage.image);
           }
         }
+      }
+      
+      // Si hay tallas disponibles, seleccionar la primera por defecto
+      if (data?.show_sizes && data?.available_sizes?.length > 0) {
+        setSelectedSize(data.available_sizes[0]);
       }
 
       const { data: promotionData, error: promotionError } = await supabase
@@ -103,8 +114,15 @@ export default function ProductDetail() {
     e.preventDefault();
     if (!product) return;
     
-    if (product.available_colors?.length && !selectedColor) {
+    // Validar selección de color si es necesario
+    if (product.show_colors && product.available_colors?.length && !selectedColor) {
       toast.error('Por favor selecciona un color');
+      return;
+    }
+    
+    // Validar selección de talla si es necesario
+    if (product.show_sizes && product.available_sizes?.length && !selectedSize) {
+      toast.error('Por favor selecciona una talla');
       return;
     }
 
@@ -113,7 +131,7 @@ export default function ProductDetail() {
       ? { ...product, promotion: product.promotion } 
       : product;
 
-    cartStore.addItem(productWithPromotion, quantity, selectedColor);
+    cartStore.addItem(productWithPromotion, quantity, selectedColor, selectedSize);
 
     toast.success(
       <div className="flex items-center">
@@ -122,6 +140,7 @@ export default function ProductDetail() {
           <p className="text-sm">
             {quantity} {quantity > 1 ? 'unidades' : 'unidad'} de {product.name}
             {selectedColor && ` (${selectedColor})`}
+            {selectedSize && ` - Talla ${selectedSize}`}
           </p>
         </div>
       </div>,
@@ -144,8 +163,15 @@ export default function ProductDetail() {
     e.preventDefault();
     if (!product) return;
 
-    if (product.available_colors?.length && !selectedColor) {
+    // Validar selección de color si es necesario
+    if (product.show_colors && product.available_colors?.length && !selectedColor) {
       toast.error('Por favor selecciona un color');
+      return;
+    }
+    
+    // Validar selección de talla si es necesario
+    if (product.show_sizes && product.available_sizes?.length && !selectedSize) {
+      toast.error('Por favor selecciona una talla');
       return;
     }
 
@@ -155,8 +181,27 @@ export default function ProductDetail() {
       : product;
 
     cartStore.clearCart();
-    cartStore.addItem(productWithPromotion, quantity, selectedColor);
+    cartStore.addItem(productWithPromotion, quantity, selectedColor, selectedSize);
     navigate('/checkout');
+  };
+
+  const handleToggleFavorite = async () => {
+    if (!product) return;
+    
+    if (!user) {
+      toast.error('Debes iniciar sesión para agregar favoritos');
+      return;
+    }
+
+    const isFavorite = favoritesStore.isFavorite(product.id);
+    
+    if (isFavorite) {
+      await favoritesStore.removeFromFavorites(user.id, product.id);
+      toast.success('Producto eliminado de favoritos');
+    } else {
+      await favoritesStore.addToFavorites(user.id, product);
+      toast.success('Producto agregado a favoritos');
+    }
   };
 
   const getDiscountedPrice = () => {
@@ -238,6 +283,7 @@ export default function ProductDetail() {
               />
             </div>
             
+            {/* Thumbnails gallery */}
             {product.images && product.images.length > 1 && (
               <div className="grid grid-cols-4 gap-4">
                 {product.images.map((image, index) => (
@@ -338,7 +384,8 @@ export default function ProductDetail() {
               </div>
             </div>
 
-            {product.available_colors && product.available_colors.length > 0 && (
+            {/* Color selection */}
+            {product.show_colors && product.available_colors && product.available_colors.length > 0 && (
               <div className="mt-6">
                 <h3 className="text-sm font-medium text-gray-900">Colores disponibles</h3>
                 <div className="mt-2 flex flex-wrap gap-2">
@@ -348,6 +395,7 @@ export default function ProductDetail() {
                       onClick={() => {
                         setSelectedColor(color);
                         
+                        // Buscar imagen específica para este color
                         if (product.color_images && product.color_images.length > 0) {
                           const colorImage = product.color_images.find(ci => ci.color === color);
                           if (colorImage && colorImage.image) {
@@ -355,13 +403,45 @@ export default function ProductDetail() {
                           }
                         }
                       }}
-                      className={`px-3 py-1 rounded-full text-sm ${
+                      className={`relative px-3 py-1 rounded-full text-sm ${
                         selectedColor === color
                           ? 'bg-indigo-600 text-white'
                           : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                       }`}
                     >
+                      {selectedColor === color && (
+                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                          <Check className="h-3 w-3 text-white" />
+                        </span>
+                      )}
                       {color}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Size selection */}
+            {product.show_sizes && product.available_sizes && product.available_sizes.length > 0 && (
+              <div className="mt-6">
+                <h3 className="text-sm font-medium text-gray-900">Tallas disponibles</h3>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {product.available_sizes.map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setSelectedSize(size)}
+                      className={`relative px-3 py-1 rounded-full text-sm ${
+                        selectedSize === size
+                          ? 'bg-indigo-600 text-white'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      {selectedSize === size && (
+                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                          <Check className="h-3 w-3 text-white" />
+                        </span>
+                      )}
+                      {size}
                     </button>
                   ))}
                 </div>
@@ -382,11 +462,11 @@ export default function ProductDetail() {
               </div>
             )}
 
-            {product.show_delivery_time && product.delivery_time && (
+            {product.show_delivery_time && (product.delivery_time || product.shipping_days) && (
               <div className="mt-6">
                 <div className="flex items-center text-sm text-gray-700">
                   <Clock className="h-5 w-5 text-gray-400 mr-2" />
-                  <span>Tiempo estimado de entrega: {product.delivery_time}</span>
+                  <span>Tiempo estimado de entrega: {product.delivery_time || `${product.shipping_days} días hábiles`}</span>
                 </div>
               </div>
             )}
@@ -449,6 +529,35 @@ export default function ProductDetail() {
                   Comprar ahora
                 </button>
               </div>
+              
+              {user && (
+                <button
+                  onClick={handleToggleFavorite}
+                  className={`flex items-center justify-center py-3 px-8 rounded-md text-sm font-medium ${
+                    favoritesStore.isFavorite(product.id)
+                      ? 'bg-red-100 text-red-700 hover:bg-red-200'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    className={`h-5 w-5 mr-2 ${
+                      favoritesStore.isFavorite(product.id) ? 'text-red-500 fill-current' : 'text-gray-400'
+                    }`} 
+                    viewBox="0 0 24 24" 
+                    stroke="currentColor"
+                    fill="none"
+                  >
+                    <path 
+                      strokeLinecap="round" 
+                      strokeLinejoin="round" 
+                      strokeWidth={2} 
+                      d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" 
+                    />
+                  </svg>
+                  {favoritesStore.isFavorite(product.id) ? 'Quitar de favoritos' : 'Añadir a favoritos'}
+                </button>
+              )}
             </div>
 
             {product.category && (

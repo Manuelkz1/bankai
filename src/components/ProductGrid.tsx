@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { toast } from 'react-hot-toast';
-import { ShoppingCart, Search, Filter, X, Tag, Star, Truck, Heart } from 'lucide-react';
+import { ShoppingCart, Search, Filter, X, Tag, Star, Truck, Heart, Paintbrush, Ruler } from 'lucide-react';
 import { useCartStore } from '../stores/cartStore';
 import { useFavoritesStore } from '../stores/favoritesStore';
 import { useAuthStore } from '../stores/authStore';
@@ -182,6 +182,14 @@ export function ProductGrid() {
 
   const handleAddToCart = (product: Product, event: React.MouseEvent) => {
     event.preventDefault();
+    
+    // Si el producto tiene colores o tallas, redirigir a la página de detalle
+    if ((product.show_colors && product.available_colors?.length) || 
+        (product.show_sizes && product.available_sizes?.length)) {
+      navigate(`/product/${product.id}`);
+      return;
+    }
+    
     cartStore.addItem(product, 1);
     toast.success('Producto agregado al carrito');
   };
@@ -385,11 +393,23 @@ export function ProductGrid() {
                   target.src = 'https://via.placeholder.com/400x300?text=No+Image';
                 }}
               />
-              {product.available_colors && product.available_colors.length > 0 && (
-                <div className="absolute top-2 right-2 bg-white rounded-full px-2 py-1 text-xs">
-                  {product.available_colors.length} colores
-                </div>
-              )}
+              
+              {/* Badges para atributos */}
+              <div className="absolute top-2 left-2 flex flex-col gap-1">
+                {product.show_colors && product.available_colors && product.available_colors.length > 0 && (
+                  <div className="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded-full flex items-center">
+                    <Paintbrush className="h-3 w-3 mr-1" />
+                    {product.available_colors.length} colores
+                  </div>
+                )}
+                
+                {product.show_sizes && product.available_sizes && product.available_sizes.length > 0 && (
+                  <div className="bg-purple-100 text-purple-800 text-xs font-medium px-2 py-1 rounded-full flex items-center">
+                    <Ruler className="h-3 w-3 mr-1" />
+                    {product.available_sizes.length} tallas
+                  </div>
+                )}
+              </div>
             </div>
             <div className="p-4">
               <h3 className="text-lg font-semibold text-gray-900 mb-1">{product.name}</h3>
@@ -477,4 +497,3 @@ export function ProductGrid() {
     </div>
   );
 }
-
