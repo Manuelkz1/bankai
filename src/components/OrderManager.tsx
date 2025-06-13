@@ -23,7 +23,8 @@ import {
   User,
   MapPin,
   DollarSign,
-  Send
+  Send,
+  Save
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -65,6 +66,7 @@ const OrderManager: React.FC = () => {
   const [customMessage, setCustomMessage] = useState('');
   const [useCustomMessage, setUseCustomMessage] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [savingMessage, setSavingMessage] = useState(false);
 
   useEffect(() => {
     loadOrders();
@@ -330,6 +332,94 @@ const OrderManager: React.FC = () => {
       toast.error('Error al actualizar el estado del pedido');
     } finally {
       setUpdatingStatus(false);
+    }
+  };
+
+  const handleSaveCustomMessage = async () => {
+    if (!selectedOrder) return;
+    
+    try {
+      setSavingMessage(true);
+      
+      if (!customMessage.trim() && !useCustomMessage) {
+        // If message is empty and checkbox is unchecked, clear any existing message
+        const { error } = await supabase
+          .from('orders')
+          .update({ 
+            custom_message: null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', selectedOrder.id);
+          
+        if (error) throw error;
+        
+        // Update local state
+        setOrders(prevOrders => 
+          prevOrders.map(order => 
+            order.id === selectedOrder.id ? { ...order, custom_message: null } : order
+          )
+        );
+        
+        setFilteredOrders(prevOrders => 
+          prevOrders.map(order => 
+            order.id === selectedOrder.id ? { ...order, custom_message: null } : order
+          )
+        );
+        
+        setSelectedOrder({
+          ...selectedOrder,
+          custom_message: null
+        });
+        
+        toast.success('Mensaje personalizado eliminado');
+        return;
+      }
+      
+      if (!useCustomMessage) {
+        toast.error('Debes activar la opción de mensaje personalizado');
+        return;
+      }
+      
+      if (!customMessage.trim()) {
+        toast.error('El mensaje personalizado no puede estar vacío');
+        return;
+      }
+      
+      const { error } = await supabase
+        .from('orders')
+        .update({ 
+          custom_message: customMessage.trim(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedOrder.id);
+        
+      if (error) throw error;
+      
+      // Update local state
+      setOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === selectedOrder.id ? { ...order, custom_message: customMessage.trim() } : order
+        )
+      );
+      
+      setFilteredOrders(prevOrders => 
+        prevOrders.map(order => 
+          order.id === selectedOrder.id ? { ...order, custom_message: customMessage.trim() } : order
+        )
+      );
+      
+      setSelectedOrder({
+        ...selectedOrder,
+        custom_message: customMessage.trim()
+      });
+      
+      toast.success('Mensaje personalizado guardado exitosamente');
+      
+    } catch (error: any) {
+      console.error('Error saving custom message:', error);
+      toast.error('Error al guardar el mensaje personalizado');
+    } finally {
+      setSavingMessage(false);
     }
   };
   
@@ -988,9 +1078,28 @@ const OrderManager: React.FC = () => {
                       placeholder="Ej: Tu pedido está empacado y será enviado esta tarde por la transportadora Servientrega."
                       className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
                     />
-                    <p className="mt-1 text-xs text-gray-500">
-                      Este mensaje será visible para el cliente en su sección de pedidos.
-                    </p>
+                    <div className="flex justify-between items-center mt-2">
+                      <p className="text-xs text-gray-500">
+                        Este mensaje será visible para el cliente en su sección de pedidos.
+                      </p>
+                      <button
+                        onClick={handleSaveCustomMessage}
+                        disabled={savingMessage}
+                        className="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                      >
+                        {savingMessage ? (
+                          <>
+                            <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                            Guardando...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="h-4 w-4 mr-2" />
+                            Guardar Mensaje
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
