@@ -41,6 +41,7 @@ export default function UnifiedOrdersPage() {
   const [error, setError] = useState<string | null>(null);
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   const [processingOrder, setProcessingOrder] = useState<string | null>(null);
+  const [cancellingOrder, setCancellingOrder] = useState<string | null>(null);
 
   useEffect(() => {
     loadOrders();
@@ -71,6 +72,7 @@ export default function UnifiedOrdersPage() {
           )
         `)
         .eq('user_id', user.id)
+        .neq('status', 'cancelled') // Excluir pedidos cancelados
         .order('created_at', { ascending: false });
 
       if (fetchError) {
@@ -190,9 +192,11 @@ export default function UnifiedOrdersPage() {
     }
 
     try {
-      setLoading(true);
+      setCancellingOrder(orderId);
       
-      // Update the order status to 'cancelled'
+      console.log('Cancelando pedido:', orderId);
+      
+      // Actualizar el estado del pedido a cancelado
       const { error } = await supabase
         .from('orders')
         .update({ 
@@ -200,23 +204,36 @@ export default function UnifiedOrdersPage() {
           payment_status: 'failed',
           updated_at: new Date().toISOString()
         })
-        .eq('id', orderId);
+        .eq('id', orderId)
+        .eq('user_id', user?.id); // Asegurar que solo el usuario propietario pueda cancelar
 
       if (error) {
         console.error('Error cancelling order:', error);
-        toast.error('Error al cancelar el pedido');
+        toast.error('Error al cancelar el pedido: ' + error.message);
         return;
       }
       
-      // Reload orders to reflect the changes
-      await loadOrders();
+      console.log('Pedido cancelado exitosamente en la base de datos');
+      
+      // Remover el pedido de la lista local inmediatamente
+      setPendingOrders(prevOrders => {
+        const updatedOrders = prevOrders.filter(order => order.id !== orderId);
+        console.log('Pedidos pendientes actualizados:', updatedOrders.length);
+        return updatedOrders;
+      });
       
       toast.success('Pedido cancelado exitosamente');
+      
+      // Recargar la lista para asegurar sincronización
+      setTimeout(() => {
+        loadOrders();
+      }, 1000);
+      
     } catch (error) {
       console.error('Error cancelling order:', error);
       toast.error('Error al cancelar el pedido');
     } finally {
-      setLoading(false);
+      setCancellingOrder(null);
     }
   };
 
@@ -710,7 +727,7 @@ export default function UnifiedOrdersPage() {
                         <div className="flex flex-col sm:flex-row gap-3">
                           <button
                             onClick={() => retryPayment(order)}
-                            disabled={processingOrder === order.id}
+                            disabled={processingOrder === order.id || cancellingOrder === order.id}
                             className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                           >
                             {processingOrder === order.id ? (
@@ -723,10 +740,15 @@ export default function UnifiedOrdersPage() {
 
                           <button
                             onClick={() => cancelOrder(order.id)}
-                            className="flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                            disabled={processingOrder === order.id || cancellingOrder === order.id}
+                            className="flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                           >
-                            <X className="w-5 h-5" />
-                            Cancelar
+                            {cancellingOrder === order.id ? (
+                              <RefreshCw className="w-5 h-5 animate-spin" />
+                            ) : (
+                              <X className="w-5 h-5" />
+                            )}
+                            {cancellingOrder === order.id ? 'Cancelando...' : 'Cancelar'}
                           </button>
                         </div>
                       </div>
