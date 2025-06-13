@@ -1,4 +1,3 @@
-import { initMercadoPago } from '@mercadopago/sdk-js';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
@@ -38,10 +37,6 @@ export function GuestCheckout() {
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
-
-  useEffect(() => {
-    initMercadoPago("APP_USR-1cddcce7-e44e-4284-872a-acf753a22ddd");
-  }, []);
   
   const [formData, setFormData] = useState<FormData>(() => {
     const saved = sessionStorage.getItem("checkout-form");
@@ -81,8 +76,8 @@ export function GuestCheckout() {
     cartStore.clearCart();
     sessionStorage.removeItem("checkout-form");
     
-    // Redirigir usando el SDK de Mercado Pago
-    window.open(url, '_self');
+    // Redirigir directamente a Mercado Pago
+    window.location.href = url;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
