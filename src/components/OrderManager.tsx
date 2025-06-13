@@ -22,7 +22,8 @@ import {
   Mail,
   User,
   MapPin,
-  DollarSign
+  DollarSign,
+  Send
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -61,6 +62,8 @@ const OrderManager: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
   const [orderNote, setOrderNote] = useState('');
+  const [customMessage, setCustomMessage] = useState('');
+  const [useCustomMessage, setUseCustomMessage] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
   useEffect(() => {
@@ -267,6 +270,11 @@ const OrderManager: React.FC = () => {
         updateData.notes = note;
       }
       
+      // Add custom message if enabled
+      if (useCustomMessage && customMessage.trim()) {
+        updateData.custom_message = customMessage.trim();
+      }
+      
       const { error } = await supabase
         .from('orders')
         .update(updateData)
@@ -277,14 +285,24 @@ const OrderManager: React.FC = () => {
       // Update the order in the local state
       setOrders(prevOrders => 
         prevOrders.map(order => 
-          order.id === orderId ? { ...order, status, notes: note || order.notes } : order
+          order.id === orderId ? { 
+            ...order, 
+            status, 
+            notes: note || order.notes,
+            custom_message: useCustomMessage && customMessage.trim() ? customMessage.trim() : order.custom_message
+          } : order
         )
       );
       
       // Also update in filtered orders
       setFilteredOrders(prevOrders => 
         prevOrders.map(order => 
-          order.id === orderId ? { ...order, status, notes: note || order.notes } : order
+          order.id === orderId ? { 
+            ...order, 
+            status, 
+            notes: note || order.notes,
+            custom_message: useCustomMessage && customMessage.trim() ? customMessage.trim() : order.custom_message
+          } : order
         )
       );
       
@@ -293,14 +311,20 @@ const OrderManager: React.FC = () => {
         setSelectedOrder({
           ...selectedOrder,
           status,
-          notes: note || selectedOrder.notes
+          notes: note || selectedOrder.notes,
+          custom_message: useCustomMessage && customMessage.trim() ? customMessage.trim() : selectedOrder.custom_message
         });
       }
       
       toast.success(`Estado del pedido actualizado a "${ORDER_STATUS_MAP[status]?.label || status}"`);
       
-      // Clear note field
+      // Clear fields
       setOrderNote('');
+      if (useCustomMessage && customMessage) {
+        toast.success('Mensaje personalizado añadido al pedido');
+        setCustomMessage('');
+        setUseCustomMessage(false);
+      }
     } catch (error: any) {
       console.error('Error updating order status:', error);
       toast.error('Error al actualizar el estado del pedido');
@@ -314,6 +338,8 @@ const OrderManager: React.FC = () => {
     setSelectedOrder(order);
     setShowOrderDetailModal(true);
     setOrderNote(order.notes || '');
+    setCustomMessage(order.custom_message || '');
+    setUseCustomMessage(!!order.custom_message);
   };
 
   const toggleOrderExpand = (orderId: string) => {
@@ -535,6 +561,12 @@ const OrderManager: React.FC = () => {
                           {ORDER_STATUS_MAP[order.status]?.icon}
                           <span className="ml-1">{ORDER_STATUS_MAP[order.status]?.label || order.status}</span>
                         </span>
+                        {order.custom_message && (
+                          <div className="mt-1 text-xs text-gray-600 flex items-center">
+                            <MessageSquare className="h-3 w-3 mr-1" />
+                            <span className="truncate max-w-[150px]">{order.custom_message}</span>
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex flex-col space-y-1">
@@ -598,7 +630,7 @@ const OrderManager: React.FC = () => {
                                 <p>{order.shipping_address?.country}</p>
                                 <p className="mt-1 flex items-center">
                                   <Phone className="h-4 w-4 mr-1 text-gray-500" />
-                                  {order.shipping_address?.phone || 'No disponible'}
+                                  WhatsApp: {order.shipping_address?.phone || 'No disponible'}
                                 </p>
                               </div>
                             </div>
@@ -616,7 +648,7 @@ const OrderManager: React.FC = () => {
                                 </p>
                                 <p className="flex items-center">
                                   <Phone className="h-4 w-4 mr-1 text-gray-500" />
-                                  {order.customer_phone || 'No disponible'}
+                                  WhatsApp: {order.customer_phone || 'No disponible'}
                                 </p>
                                 <p className="mt-1 flex items-center">
                                   <DollarSign className="h-4 w-4 mr-1 text-gray-500" />
@@ -634,6 +666,18 @@ const OrderManager: React.FC = () => {
                               </h4>
                               <div className="text-sm text-gray-600 bg-white p-3 rounded-md shadow-sm">
                                 {order.notes}
+                              </div>
+                            </div>
+                          )}
+                          
+                          {order.custom_message && (
+                            <div className="mb-4">
+                              <h4 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
+                                <MessageSquare className="h-4 w-4 mr-1 text-green-500" />
+                                Mensaje personalizado para el cliente
+                              </h4>
+                              <div className="text-sm text-gray-600 bg-green-50 p-3 rounded-md shadow-sm border border-green-100">
+                                {order.custom_message}
                               </div>
                             </div>
                           )}
@@ -788,7 +832,7 @@ const OrderManager: React.FC = () => {
                     {selectedOrder.customer_email || 'N/A'}
                   </p>
                   <p className="text-sm text-gray-900 flex items-center">
-                    <span className="font-medium w-24">Teléfono:</span> 
+                    <span className="font-medium w-24">WhatsApp:</span> 
                     {selectedOrder.customer_phone || 'N/A'}
                   </p>
                 </div>
@@ -838,7 +882,7 @@ const OrderManager: React.FC = () => {
                 {selectedOrder.shipping_address?.country}<br />
                 <span className="flex items-center mt-1">
                   <Phone className="h-4 w-4 mr-1 text-gray-500" />
-                  {selectedOrder.shipping_address?.phone || 'No disponible'}
+                  WhatsApp: {selectedOrder.shipping_address?.phone || 'No disponible'}
                 </span>
               </p>
             </div>
@@ -909,17 +953,48 @@ const OrderManager: React.FC = () => {
               </h4>
               <div className="mb-4">
                 <label htmlFor="orderNote" className="block text-sm font-medium text-gray-700 mb-1">
-                  Notas para este pedido (opcional)
+                  Notas internas (solo visibles para administradores)
                 </label>
                 <textarea
                   id="orderNote"
-                  rows={3}
+                  rows={2}
                   value={orderNote}
                   onChange={(e) => setOrderNote(e.target.value)}
-                  placeholder="Añade notas o instrucciones especiales para este pedido..."
+                  placeholder="Añade notas o instrucciones internas para este pedido..."
                   className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
                 />
               </div>
+              
+              <div className="mb-4">
+                <div className="flex items-center mb-2">
+                  <input
+                    type="checkbox"
+                    id="useCustomMessage"
+                    checked={useCustomMessage}
+                    onChange={(e) => setUseCustomMessage(e.target.checked)}
+                    className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                  />
+                  <label htmlFor="useCustomMessage" className="ml-2 block text-sm font-medium text-gray-700">
+                    Añadir mensaje personalizado para el cliente
+                  </label>
+                </div>
+                
+                {useCustomMessage && (
+                  <div className="mt-2">
+                    <textarea
+                      rows={3}
+                      value={customMessage}
+                      onChange={(e) => setCustomMessage(e.target.value)}
+                      placeholder="Ej: Tu pedido está empacado y será enviado esta tarde por la transportadora Servientrega."
+                      className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 block w-full sm:text-sm border-gray-300 rounded-md"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Este mensaje será visible para el cliente en su sección de pedidos.
+                    </p>
+                  </div>
+                )}
+              </div>
+              
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => handleUpdateOrderStatus(selectedOrder.id, 'pending', orderNote)}

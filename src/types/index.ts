@@ -51,7 +51,7 @@ export interface Order {
     phone: string;
   };
   payment_method: 'cash_on_delivery' | 'mercadopago';
-  payment_status: 'pending' | 'paid' | 'failed' | 'payment_pending';
+  payment_status: 'pending' | 'paid' | 'failed' | 'payment_pending' | 'pending_cod';
   payment_url?: string;
   created_at: string;
   updated_at: string;
@@ -81,6 +81,7 @@ export interface Order {
   customer_phone?: string;
   total_amount?: number;
   notes?: string;
+  custom_message?: string;
 }
 
 export interface Review {

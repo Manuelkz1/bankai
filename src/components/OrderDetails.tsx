@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { Order } from '../types/index';
 import { format } from 'date-fns';
-import { ArrowLeft, Package, Truck, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { ArrowLeft, Package, Truck, CheckCircle, XCircle, Clock, MessageSquare } from 'lucide-react';
 import { useAuthStore } from '../stores/authStore';
 import { toast } from 'react-hot-toast';
 
@@ -173,6 +173,18 @@ export default function OrderDetails() {
             </div>
           </div>
 
+          {order.custom_message && (
+            <div className="px-6 py-4 bg-green-50 border-b border-green-100">
+              <div className="flex items-start">
+                <MessageSquare className="h-5 w-5 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                <div>
+                  <h3 className="text-sm font-medium text-green-800">Mensaje sobre tu pedido</h3>
+                  <p className="mt-1 text-sm text-green-700">{order.custom_message}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="px-6 py-4 border-b border-gray-200">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -206,7 +218,7 @@ export default function OrderDetails() {
                   <p>{order.shipping_address.address}</p>
                   <p>{order.shipping_address.city}, {order.shipping_address.postal_code}</p>
                   <p>{order.shipping_address.country}</p>
-                  <p>Tel: {order.shipping_address.phone}</p>
+                  <p>WhatsApp: {order.shipping_address.phone}</p>
                 </address>
               </div>
             </div>

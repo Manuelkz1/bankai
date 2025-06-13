@@ -430,7 +430,7 @@ export function GuestCheckout() {
                       </div>
                       <div>
                         <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
-                          Teléfono
+                          WhatsApp
                         </label>
                         <div className="mt-1">
                           <input
