@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
-import { Upload, X, Save, Image as ImageIcon, Lock, Unlock, TruckIcon } from 'lucide-react';
+import { Upload, X, Save, Image as ImageIcon, Lock, Unlock, Truck, Phone, PhoneOff } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface CompanySettings {
@@ -13,6 +13,7 @@ interface CompanySettings {
   logo_height: number;
   maintain_ratio: boolean;
   dropshipping_shipping_cost: number;
+  phone_auth_enabled: boolean;
   updated_at: string;
 }
 
@@ -25,7 +26,8 @@ const defaultSettings: Omit<CompanySettings, 'id' | 'updated_at'> = {
   logo_width: 200,
   logo_height: 60,
   maintain_ratio: true,
-  dropshipping_shipping_cost: 0
+  dropshipping_shipping_cost: 0,
+  phone_auth_enabled: true
 };
 
 export function CompanySettings() {
@@ -39,8 +41,8 @@ export function CompanySettings() {
   const [logoWidth, setLogoWidth] = useState(200);
   const [logoHeight, setLogoHeight] = useState(60);
   const [maintainRatio, setMaintainRatio] = useState(true);
-  const [aspectRatio, setAspectRatio] = useState(200 / 60);
   const [dropshippingShippingCost, setDropshippingShippingCost] = useState(0);
+  const [phoneAuthEnabled, setPhoneAuthEnabled] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoRef = useRef<HTMLImageElement>(null);
 
@@ -111,6 +113,7 @@ export function CompanySettings() {
       setLogoHeight(settingsData.logo_height || defaultSettings.logo_height);
       setMaintainRatio(settingsData.maintain_ratio !== undefined ? settingsData.maintain_ratio : defaultSettings.maintain_ratio);
       setDropshippingShippingCost(settingsData.dropshipping_shipping_cost || defaultSettings.dropshipping_shipping_cost);
+      setPhoneAuthEnabled(settingsData.phone_auth_enabled !== undefined ? settingsData.phone_auth_enabled : defaultSettings.phone_auth_enabled);
       
       if (settingsData.logo_url && settingsData.maintain_ratio) {
         // Load image to get natural dimensions
@@ -140,6 +143,7 @@ export function CompanySettings() {
       setLogoHeight(defaultData.logo_height);
       setMaintainRatio(defaultData.maintain_ratio);
       setDropshippingShippingCost(defaultData.dropshipping_shipping_cost);
+      setPhoneAuthEnabled(defaultData.phone_auth_enabled);
     } finally {
       setLoading(false);
     }
@@ -201,6 +205,8 @@ export function CompanySettings() {
       return null;
     }
   };
+
+  const [aspectRatio, setAspectRatio] = useState(200 / 60);
 
   const handleWidthChange = (newWidth: number) => {
     newWidth = Math.min(500, Math.max(50, newWidth));
@@ -275,6 +281,7 @@ export function CompanySettings() {
         logo_height: logoHeight,
         maintain_ratio: maintainRatio,
         dropshipping_shipping_cost: dropshippingShippingCost,
+        phone_auth_enabled: phoneAuthEnabled,
         updated_at: new Date().toISOString()
       };
 
@@ -420,7 +427,7 @@ export function CompanySettings() {
         {/* Dropshipping Settings */}
         <div className="space-y-4">
           <h3 className="text-lg font-medium text-gray-900 flex items-center">
-            <TruckIcon className="h-5 w-5 mr-2" />
+            <Truck className="h-5 w-5 mr-2" />
             Configuración de Dropshipping
           </h3>
           
@@ -445,6 +452,56 @@ export function CompanySettings() {
               Si se establece en 0, el envío será gratuito para estos usuarios.
             </p>
           </div>
+        </div>
+
+        {/* Authentication Settings */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-medium text-gray-900 flex items-center">
+            <Phone className="h-5 w-5 mr-2" />
+            Configuración de Autenticación
+          </h3>
+          
+          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center">
+              {phoneAuthEnabled ? (
+                <Phone className="h-5 w-5 text-green-600 mr-3" />
+              ) : (
+                <PhoneOff className="h-5 w-5 text-red-600 mr-3" />
+              )}
+              <div>
+                <h4 className="text-sm font-medium text-gray-900">Autenticación por teléfono</h4>
+                <p className="text-xs text-gray-500">
+                  {phoneAuthEnabled 
+                    ? 'Los usuarios pueden iniciar sesión con su número de teléfono' 
+                    : 'La autenticación por teléfono está desactivada'}
+                </p>
+              </div>
+            </div>
+            <div className="relative inline-block w-12 mr-2 align-middle select-none">
+              <input 
+                type="checkbox" 
+                id="phoneAuthToggle" 
+                checked={phoneAuthEnabled}
+                onChange={(e) => setPhoneAuthEnabled(e.target.checked)}
+                className="sr-only"
+              />
+              <label 
+                htmlFor="phoneAuthToggle" 
+                className={`block overflow-hidden h-6 rounded-full cursor-pointer transition-colors duration-200 ease-in-out ${
+                  phoneAuthEnabled ? 'bg-green-500' : 'bg-gray-300'
+                }`}
+              >
+                <span 
+                  className={`block h-6 w-6 rounded-full bg-white shadow transform transition-transform duration-200 ease-in-out ${
+                    phoneAuthEnabled ? 'translate-x-6' : 'translate-x-0'
+                  }`} 
+                />
+              </label>
+            </div>
+          </div>
+          <p className="text-sm text-gray-500">
+            Cuando esta opción está desactivada, los usuarios solo podrán iniciar sesión con correo electrónico.
+          </p>
         </div>
 
         {/* Logo Management */}

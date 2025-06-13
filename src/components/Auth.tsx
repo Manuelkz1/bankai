@@ -8,6 +8,7 @@ import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { useAuthStore } from '../stores/authStore';
 import { SocialAuth } from './SocialAuth';
 import { PhoneAuth } from './PhoneAuth';
+import { useCompanySettings } from '../hooks/useCompanySettings';
 
 interface AuthProps {
   onAuthSuccess?: () => void;
@@ -18,6 +19,7 @@ export function Auth({ onAuthSuccess, onGuestCheckout }: AuthProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signIn, initialize } = useAuthStore();
+  const { settings, loading: settingsLoading } = useCompanySettings();
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -26,6 +28,9 @@ export function Auth({ onAuthSuccess, onGuestCheckout }: AuthProps) {
   const [showResendConfirmation, setShowResendConfirmation] = useState(false);
   const [lastResendTime, setLastResendTime] = useState(0);
   const [confirmationSent, setConfirmationSent] = useState(false);
+
+  // Determinar si la autenticación por teléfono está habilitada
+  const phoneAuthEnabled = settings?.phone_auth_enabled !== false; // Por defecto true si no está definido
 
   useEffect(() => {
     initialize();
@@ -206,35 +211,37 @@ export function Auth({ onAuthSuccess, onGuestCheckout }: AuthProps) {
         </div>
 
         {/* Toggle para método de autenticación */}
-        <div className="flex justify-center">
-          <div className="flex bg-gray-100 rounded-lg p-1">
-            <button
-              onClick={() => setAuthMethod('email')}
-              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                authMethod === 'email'
-                  ? 'bg-white text-indigo-600 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <Mail className="h-4 w-4 mr-2" />
-              Email
-            </button>
-            <button
-              onClick={() => setAuthMethod('phone')}
-              className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                authMethod === 'phone'
-                  ? 'bg-white text-indigo-600 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <Phone className="h-4 w-4 mr-2" />
-              Teléfono
-            </button>
+        {phoneAuthEnabled && (
+          <div className="flex justify-center">
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setAuthMethod('email')}
+                className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  authMethod === 'email'
+                    ? 'bg-white text-indigo-600 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Email
+              </button>
+              <button
+                onClick={() => setAuthMethod('phone')}
+                className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                  authMethod === 'phone'
+                    ? 'bg-white text-indigo-600 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <Phone className="h-4 w-4 mr-2" />
+                Teléfono
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Mostrar componente según método seleccionado */}
-        {authMethod === 'phone' ? (
+        {authMethod === 'phone' && phoneAuthEnabled ? (
           <PhoneAuth 
             onAuthSuccess={onAuthSuccess}
             onBackToEmail={() => setAuthMethod('email')}

@@ -12,6 +12,7 @@ interface CompanySettings {
   logo_height?: number;
   maintain_ratio?: boolean;
   dropshipping_shipping_cost?: number;
+  phone_auth_enabled?: boolean;
 }
 
 // Default settings to use when no row exists
@@ -24,6 +25,7 @@ const defaultSettings: Omit<CompanySettings, 'id' | 'updated_at'> = {
   logo_height: 60,
   maintain_ratio: true,
   dropshipping_shipping_cost: 0,
+  phone_auth_enabled: true,
 };
 
 const RETRY_ATTEMPTS = 3;
