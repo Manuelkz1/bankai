@@ -207,14 +207,8 @@ export default function ProductDetail() {
   const getDiscountedPrice = () => {
     if (!product || !product.promotion) return null;
     
-    if (product.promotion.total_price) {
+    if (product.promotion.type === 'discount' && product.promotion.total_price) {
       return product.promotion.total_price;
-    }
-    
-    if (product.promotion.type === 'discount') {
-      const discountPercent = product.promotion.discount_percent || 20;
-      const discountMultiplier = (100 - discountPercent) / 100;
-      return (product.price * discountMultiplier).toFixed(2);
     }
     
     if (['2x1', '3x1', '3x2'].includes(product.promotion.type)) {
@@ -337,7 +331,8 @@ export default function ProductDetail() {
                         </div>
                         <div className="mt-1 inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
                           <Tag className="h-4 w-4 mr-1" />
-                          {product.promotion.discount_percent || 20}% de descuento
+                          {product.promotion.discount_percent || 
+                           Math.round((1 - (product.promotion.total_price / product.price)) * 100)}% de descuento
                         </div>
                       </div>
                     ) : (

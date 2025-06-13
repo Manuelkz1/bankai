@@ -7,6 +7,7 @@ export interface CartItem {
   quantity: number;
   selectedColor?: string;
   selectedSize?: string;
+  effectivePrice: number; // Precio efectivo que se debe cobrar (con promoción aplicada)
 }
 
 interface CartStore {
@@ -21,6 +22,7 @@ interface CartStore {
   toggleCart: () => void;
   calculateTotal: () => void;
   rehydrate: () => void;
+  getEffectivePrice: (product: Product) => number;
 }
 
 export const useCartStore = create<CartStore>()(
@@ -30,8 +32,29 @@ export const useCartStore = create<CartStore>()(
       isOpen: false,
       total: 0,
 
+      getEffectivePrice: (product: Product) => {
+        if (!product.promotion) {
+          return product.price;
+        }
+
+        switch (product.promotion.type) {
+          case 'discount':
+            return product.promotion.total_price || product.price;
+          case '2x1':
+          case '3x1':
+          case '3x2':
+            // Para promociones de cantidad, el precio unitario sigue siendo el mismo
+            // El descuento se aplica en el total según la cantidad
+            return product.price;
+          default:
+            return product.price;
+        }
+      },
+
       addItem: (product, quantity = 1, selectedColor, selectedSize) => {
         const items = [...get().items];
+        const effectivePrice = get().getEffectivePrice(product);
+        
         const existingItemIndex = items.findIndex(
           item => 
             item.product.id === product.id && 
@@ -41,8 +64,16 @@ export const useCartStore = create<CartStore>()(
 
         if (existingItemIndex >= 0) {
           items[existingItemIndex].quantity += quantity;
+          // Actualizar el precio efectivo en caso de que haya cambiado
+          items[existingItemIndex].effectivePrice = effectivePrice;
         } else {
-          items.push({ product, quantity, selectedColor, selectedSize });
+          items.push({ 
+            product, 
+            quantity, 
+            selectedColor, 
+            selectedSize,
+            effectivePrice
+          });
         }
 
         set({ items });
@@ -79,34 +110,34 @@ export const useCartStore = create<CartStore>()(
         let total = 0;
 
         items.forEach(item => {
-          const { product, quantity } = item;
+          const { product, quantity, effectivePrice } = item;
           
           if (product.promotion) {
-            if (product.promotion.type === 'discount' && product.promotion.total_price) {
-              // Use fixed promotional price
-              total += product.promotion.total_price * quantity;
+            if (product.promotion.type === 'discount') {
+              // Para descuentos directos, usar el precio efectivo
+              total += effectivePrice * quantity;
             } else if (product.promotion.type === '2x1' && quantity >= 2) {
-              // For 2x1, pay for half of the items (rounded up)
+              // Para 2x1, pagar por la mitad de los items (redondeado hacia arriba)
               const paidItems = Math.ceil(quantity / 2);
-              total += paidItems * product.price;
+              total += paidItems * effectivePrice;
             } else if (product.promotion.type === '3x2' && quantity >= 3) {
-              // For 3x2, calculate sets and remaining items
+              // Para 3x2, calcular sets y items restantes
               const sets = Math.floor(quantity / 3);
               const remainder = quantity % 3;
               const paidItems = (sets * 2) + remainder;
-              total += paidItems * product.price;
+              total += paidItems * effectivePrice;
             } else if (product.promotion.type === '3x1' && quantity >= 3) {
-              // For 3x1, pay for one item per set plus remaining items
+              // Para 3x1, pagar por un item por set más los restantes
               const sets = Math.floor(quantity / 3);
               const remainder = quantity % 3;
               const paidItems = sets + remainder;
-              total += paidItems * product.price;
+              total += paidItems * effectivePrice;
             } else {
-              // If no promotion conditions are met, use regular price
-              total += product.price * quantity;
+              // Si no se cumplen las condiciones de promoción, usar precio efectivo
+              total += effectivePrice * quantity;
             }
           } else {
-            total += product.price * quantity;
+            total += effectivePrice * quantity;
           }
         });
 
@@ -114,6 +145,13 @@ export const useCartStore = create<CartStore>()(
       },
 
       rehydrate: () => {
+        // Recalcular precios efectivos al rehidratar
+        const items = get().items.map(item => ({
+          ...item,
+          effectivePrice: get().getEffectivePrice(item.product)
+        }));
+        
+        set({ items });
         get().calculateTotal();
       }
     }),
@@ -122,7 +160,7 @@ export const useCartStore = create<CartStore>()(
       getStorage: () => localStorage,
       onRehydrateStorage: () => (state) => {
         if (state) {
-          state.calculateTotal();
+          state.rehydrate();
         }
       }
     }

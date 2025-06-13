@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { MercadoPagoConfig, Preference } from "npm:mercadopago@2.0.8";
 import { createClient } from "npm:@supabase/supabase-js@2.39.7";
 
-const corsHeaders = {
+const cors = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -12,7 +12,7 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { 
       status: 204,
-      headers: corsHeaders 
+      headers: cors 
     });
   }
 
@@ -28,7 +28,7 @@ serve(async (req) => {
         JSON.stringify({ error: 'Datos inválidos' }),
         { 
           status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          headers: { ...cors, 'Content-Type': 'application/json' }
         }
       );
     }
@@ -74,13 +74,16 @@ serve(async (req) => {
     const lastName = nameParts.slice(1).join(' ') || 'Customer';
     const email = order.guest_info?.email || 'guest@example.com';
 
+    // Log the items being sent to MercadoPago
+    console.log('Items for MercadoPago:', JSON.stringify(items, null, 2));
+
     // Construct preference data
     const preferenceData = {
       items: items.map(item => ({
         title: item.product.name,
         quantity: item.quantity,
         currency_id: "COP",
-        unit_price: Number(item.product.price),
+        unit_price: Number(item.product.price), // Usar el precio efectivo (con promoción aplicada)
         description: `Orden #${orderId}`,
       })),
       payer: {
@@ -125,7 +128,7 @@ serve(async (req) => {
       }),
       { 
         status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...cors, 'Content-Type': 'application/json' }
       }
     );
 
@@ -139,7 +142,7 @@ serve(async (req) => {
       }),
       { 
         status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { ...cors, 'Content-Type': 'application/json' }
       }
     );
   }

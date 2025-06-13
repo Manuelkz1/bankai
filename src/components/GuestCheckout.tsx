@@ -16,7 +16,8 @@ import {
   Mail, 
   Phone,
   ChevronRight,
-  AlertCircle
+  AlertCircle,
+  Tag
 } from 'lucide-react';
 
 interface FormData {
@@ -134,12 +135,12 @@ export function GuestCheckout() {
 
       console.log('Orden creada con ID:', order.id);
 
-      // Crear items del pedido
+      // Crear items del pedido con precios efectivos
       const orderItems = cartStore.items.map(item => ({
         order_id: order.id,
         product_id: item.product.id,
         quantity: item.quantity,
-        price_at_time: item.product.price,
+        price_at_time: item.effectivePrice, // Usar el precio efectivo (con promoción aplicada)
         selected_color: item.selectedColor,
         selected_size: item.selectedSize
       }));
@@ -156,17 +157,20 @@ export function GuestCheckout() {
         try {
           console.log('Iniciando proceso de pago con Mercado Pago');
 
+          // Preparar items para MercadoPago con precios promocionales
+          const mercadoPagoItems = cartStore.items.map(item => ({
+            product: {
+              name: item.product.name,
+              price: Number(item.effectivePrice) // Usar precio efectivo
+            },
+            quantity: item.quantity
+          }));
+
           const { data: payment, error: paymentError } = await supabase.functions.invoke('create-payment', {
             body: {
               orderId: order.id,
-              items: cartStore.items.map(item => ({
-                product: {
-                  name: item.product.name,
-                  price: Number(item.product.price)
-                },
-                quantity: item.quantity
-              })),
-              total: cartStore.total
+              items: mercadoPagoItems,
+              total: cartStore.total // El total ya está calculado con promociones
             }
           });
 
@@ -264,6 +268,44 @@ export function GuestCheckout() {
 
   const prevStep = () => {
     setStep(step - 1);
+  };
+
+  // Función para calcular el total de un item con promociones
+  const getItemTotal = (item: any) => {
+    const { product, quantity, effectivePrice } = item;
+    
+    if (product.promotion) {
+      switch (product.promotion.type) {
+        case 'discount':
+          return effectivePrice * quantity;
+        case '2x1':
+          if (quantity >= 2) {
+            const paidItems = Math.ceil(quantity / 2);
+            return paidItems * effectivePrice;
+          }
+          return effectivePrice * quantity;
+        case '3x2':
+          if (quantity >= 3) {
+            const sets = Math.floor(quantity / 3);
+            const remainder = quantity % 3;
+            const paidItems = (sets * 2) + remainder;
+            return paidItems * effectivePrice;
+          }
+          return effectivePrice * quantity;
+        case '3x1':
+          if (quantity >= 3) {
+            const sets = Math.floor(quantity / 3);
+            const remainder = quantity % 3;
+            const paidItems = sets + remainder;
+            return paidItems * effectivePrice;
+          }
+          return effectivePrice * quantity;
+        default:
+          return effectivePrice * quantity;
+      }
+    }
+    
+    return effectivePrice * quantity;
   };
 
   return (
@@ -587,41 +629,71 @@ export function GuestCheckout() {
 
               <div className="flow-root">
                 <ul role="list" className="-my-6 divide-y divide-gray-200">
-                  {cartStore.items.map((item) => (
-                    <li key={`${item.product.id}-${item.selectedColor || ''}-${item.selectedSize || ''}`} className="py-6 flex">
-                      <div className="flex-shrink-0 w-24 h-24 border border-gray-200 rounded-md overflow-hidden">
-                        <img
-                          src={item.product.images[0]}
-                          alt={item.product.name}
-                          className="w-full h-full object-center object-cover"
-                        />
-                      </div>
+                  {cartStore.items.map((item) => {
+                    const itemTotal = getItemTotal(item);
+                    const hasPromotion = item.product.promotion && item.product.promotion.type === 'discount';
+                    
+                    return (
+                      <li key={`${item.product.id}-${item.selectedColor || ''}-${item.selectedSize || ''}`} className="py-6 flex">
+                        <div className="flex-shrink-0 w-24 h-24 border border-gray-200 rounded-md overflow-hidden">
+                          <img
+                            src={item.product.images[0]}
+                            alt={item.product.name}
+                            className="w-full h-full object-center object-cover"
+                          />
+                        </div>
 
-                      <div className="ml-4 flex-1 flex flex-col">
-                        <div>
-                          <div className="flex justify-between text-base font-medium text-gray-900">
-                            <h3>{item.product.name}</h3>
-                            <p className="ml-4">${(item.product.price * item.quantity).toFixed(2)}</p>
+                        <div className="ml-4 flex-1 flex flex-col">
+                          <div>
+                            <div className="flex justify-between text-base font-medium text-gray-900">
+                              <h3>{item.product.name}</h3>
+                              <div className="ml-4 text-right">
+                                {hasPromotion ? (
+                                  <div>
+                                    <p className="text-sm text-gray-400 line-through">
+                                      ${(item.product.price * item.quantity).toFixed(2)}
+                                    </p>
+                                    <p className="text-red-600 font-bold">
+                                      ${itemTotal.toFixed(2)}
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <p>${itemTotal.toFixed(2)}</p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="mt-1 flex flex-wrap gap-2">
+                              {item.selectedColor && (
+                                <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
+                                  Color: {item.selectedColor}
+                                </span>
+                              )}
+                              {item.selectedSize && (
+                                <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
+                                  Talla: {item.selectedSize}
+                                </span>
+                              )}
+                              {item.product.promotion && (
+                                <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full flex items-center">
+                                  <Tag className="h-3 w-3 mr-1" />
+                                  {item.product.promotion.type === 'discount' && 'Descuento'}
+                                  {item.product.promotion.type === '2x1' && '2x1'}
+                                  {item.product.promotion.type === '3x1' && '3x1'}
+                                  {item.product.promotion.type === '3x2' && '3x2'}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <div className="mt-1 flex flex-wrap gap-2">
-                            {item.selectedColor && (
-                              <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
-                                Color: {item.selectedColor}
-                              </span>
-                            )}
-                            {item.selectedSize && (
-                              <span className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded-full">
-                                Talla: {item.selectedSize}
-                              </span>
-                            )}
+                          <div className="flex-1 flex items-end justify-between text-sm">
+                            <p className="text-gray-500">Cantidad: {item.quantity}</p>
+                            <p className="text-gray-500">
+                              ${item.effectivePrice.toFixed(2)} c/u
+                            </p>
                           </div>
                         </div>
-                        <div className="flex-1 flex items-end justify-between text-sm">
-                          <p className="text-gray-500">Cantidad: {item.quantity}</p>
-                        </div>
-                      </div>
-                    </li>
-                  ))}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
 

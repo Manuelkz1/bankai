@@ -81,12 +81,12 @@ export function DropshipperCheckout({ items, total, onBack, onSuccess }: Dropshi
         throw new Error('No se pudo crear el pedido');
       }
 
-      // Create order items
+      // Create order items with effective prices
       const orderItemsData = items.map(item => ({
         order_id: order.id,
         product_id: item.product.id,
         quantity: item.quantity,
-        price_at_time: item.product.price,
+        price_at_time: item.effectivePrice, // Use effective price (with promotion applied)
         selected_color: item.selectedColor
       }));
 
@@ -198,7 +198,7 @@ export function DropshipperCheckout({ items, total, onBack, onSuccess }: Dropshi
                       {item.selectedColor && ` - Color: ${item.selectedColor}`}
                     </p>
                   </div>
-                  <p className="font-medium">${(Number(item.product.price) * item.quantity).toFixed(2)}</p>
+                  <p className="font-medium">${(item.effectivePrice * item.quantity).toFixed(2)}</p>
                 </div>
               ))}
                <div className="flex justify-between text-base font-medium text-gray-900 mt-2">
@@ -336,4 +336,3 @@ export function DropshipperCheckout({ items, total, onBack, onSuccess }: Dropshi
     </div>
   );
 }
-

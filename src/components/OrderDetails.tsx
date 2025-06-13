@@ -34,6 +34,7 @@ export default function OrderDetails() {
             quantity,
             price_at_time,
             selected_color,
+            selected_size,
             products (
               id,
               name,
@@ -234,6 +235,11 @@ export default function OrderDetails() {
                         {item.selected_color && (
                           <p className="mt-1 text-sm text-gray-500">
                             Color: {item.selected_color}
+                          </p>
+                        )}
+                        {item.selected_size && (
+                          <p className="mt-1 text-sm text-gray-500">
+                            Talla: {item.selected_size}
                           </p>
                         )}
                         <p className="mt-1 text-sm text-gray-500">

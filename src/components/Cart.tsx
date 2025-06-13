@@ -32,6 +32,61 @@ export default function Cart() {
   const totalItems = cartStore.items.reduce((sum, item) => sum + item.quantity, 0);
   const hasPromotions = cartStore.items.some(item => item.product.promotion);
 
+  const getItemTotal = (item: any) => {
+    const { product, quantity, effectivePrice } = item;
+    
+    if (product.promotion) {
+      switch (product.promotion.type) {
+        case 'discount':
+          return effectivePrice * quantity;
+        case '2x1':
+          if (quantity >= 2) {
+            const paidItems = Math.ceil(quantity / 2);
+            return paidItems * effectivePrice;
+          }
+          return effectivePrice * quantity;
+        case '3x2':
+          if (quantity >= 3) {
+            const sets = Math.floor(quantity / 3);
+            const remainder = quantity % 3;
+            const paidItems = (sets * 2) + remainder;
+            return paidItems * effectivePrice;
+          }
+          return effectivePrice * quantity;
+        case '3x1':
+          if (quantity >= 3) {
+            const sets = Math.floor(quantity / 3);
+            const remainder = quantity % 3;
+            const paidItems = sets + remainder;
+            return paidItems * effectivePrice;
+          }
+          return effectivePrice * quantity;
+        default:
+          return effectivePrice * quantity;
+      }
+    }
+    
+    return effectivePrice * quantity;
+  };
+
+  const getDisplayPrice = (item: any) => {
+    const { product, effectivePrice } = item;
+    
+    if (product.promotion && product.promotion.type === 'discount') {
+      return {
+        original: product.price,
+        promotional: effectivePrice,
+        hasDiscount: true
+      };
+    }
+    
+    return {
+      original: effectivePrice,
+      promotional: effectivePrice,
+      hasDiscount: false
+    };
+  };
+
   return (
     <div className="fixed inset-0 z-50">
       {/* Backdrop mejorado */}
@@ -109,6 +164,8 @@ export default function Cart() {
                   {cartStore.items.map((item) => {
                     const itemKey = `${item.product.id}-${item.selectedColor || ''}-${item.selectedSize || ''}`;
                     const isRemoving = removingItems.has(itemKey);
+                    const displayPrice = getDisplayPrice(item);
+                    const itemTotal = getItemTotal(item);
                     
                     return (
                       <div 
@@ -179,22 +236,22 @@ export default function Cart() {
 
                               {/* Precio */}
                               <div className="text-right ml-2">
-                                {item.product.promotion?.type === 'discount' ? (
+                                {displayPrice.hasDiscount ? (
                                   <div>
                                     <p className="text-xs text-gray-400 line-through">
-                                      ${(item.product.price * item.quantity).toFixed(2)}
+                                      ${(displayPrice.original * item.quantity).toFixed(2)}
                                     </p>
                                     <p className="text-sm font-bold text-red-600">
-                                      ${(item.product.promotion.total_price * item.quantity).toFixed(2)}
+                                      ${itemTotal.toFixed(2)}
                                     </p>
                                   </div>
                                 ) : (
                                   <p className="text-sm font-bold text-gray-900">
-                                    ${(item.product.price * item.quantity).toFixed(2)}
+                                    ${itemTotal.toFixed(2)}
                                   </p>
                                 )}
                                 <p className="text-xs text-gray-500">
-                                  ${(item.product.promotion?.total_price || item.product.price).toFixed(2)} c/u
+                                  ${displayPrice.promotional.toFixed(2)} c/u
                                 </p>
                               </div>
                             </div>
