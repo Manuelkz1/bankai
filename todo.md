@@ -1,13 +1,19 @@
-# Implementación de sistema de calificación con estrellas en la página web
+# Tareas para optimizar Mercado Pago
 
-- [x] Clonar el repositorio correcto (Bamkz_definitivo)
-- [x] Analizar la estructura del repositorio
-- [x] Identificar cómo se gestionan las reseñas en el sistema
-- [x] Diseñar el componente HomeReviews para mostrar reseñas en la página inicial
-- [x] Implementar sistema visual de calificación con estrellas (1-5) en la página inicial
-- [x] Integrar el componente HomeReviews en la página principal
-- [x] Modificar ProductGrid para mostrar estrellas de calificación en cada producto
-- [x] Implementar sistema visual de 1-5 estrellas debajo del nombre y encima del precio
-- [x] Mostrar número de calificaciones (incluso si es cero)
-- [x] Realizar commit y push al repositorio
-- [x] Verificar el despliegue automático en Netlify
+## Fase 1: Análisis del código existente
+- [ ] Clonar el repositorio (Hecho)
+- [ ] Crear un punto de restauración (commit previo) antes de cualquier modificación.
+- [ ] Revisar el código relacionado con la integración de Mercado Pago.
+
+## Fase 2: Investigación y diagnóstico
+- [ ] Investigar problemas conocidos de Mercado Pago con Safari.
+- [ ] Identificar la causa raíz del problema de procesamiento infinito.
+
+## Fase 3: Implementación de la solución
+- [ ] Implementar la solución para que funcione en todos los navegadores.
+
+## Fase 4: Verificación y despliegue
+- [ ] Realizar pruebas exhaustivas en diferentes navegadores (especialmente Safari y Chrome).
+- [ ] Verificar el despliegue exitoso en Netlify.
+
+
