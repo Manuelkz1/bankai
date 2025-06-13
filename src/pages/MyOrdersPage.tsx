@@ -14,7 +14,8 @@ import {
   AlertTriangle,
   CreditCard,
   ExternalLink,
-  CheckCircle
+  CheckCircle,
+  MessageSquare
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -164,6 +165,23 @@ export default function MyOrdersPage() {
     }
   };
 
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Clock className="h-5 w-5" />;
+      case 'processing':
+        return <Package className="h-5 w-5" />;
+      case 'shipped':
+        return <Truck className="h-5 w-5" />;
+      case 'delivered':
+        return <CheckCircle className="h-5 w-5" />;
+      case 'cancelled':
+        return <AlertTriangle className="h-5 w-5" />;
+      default:
+        return <Clock className="h-5 w-5" />;
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -278,8 +296,9 @@ export default function MyOrdersPage() {
                         <h3 className="font-semibold text-gray-900">
                           Pedido #{order.id.slice(-8).toUpperCase()}
                         </h3>
-                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                          {getStatusText(order.status)}
+                        <div className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center ${getStatusColor(order.status)}`}>
+                          {getStatusIcon(order.status)}
+                          <span className="ml-2">{getStatusText(order.status)}</span>
                         </div>
                         <div className={`px-2 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(order.payment_status)}`}>
                           {getPaymentStatusText(order.payment_status)}
@@ -318,6 +337,19 @@ export default function MyOrdersPage() {
                     </div>
                   </div>
 
+                  {/* Custom Message */}
+                  {order.custom_message && (
+                    <div className="mb-4 p-4 bg-green-50 border border-green-100 rounded-lg">
+                      <div className="flex items-start">
+                        <MessageSquare className="h-5 w-5 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                        <div>
+                          <h3 className="text-sm font-medium text-green-800">Mensaje sobre tu pedido</h3>
+                          <p className="mt-1 text-sm text-green-700">{order.custom_message}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Shipping Address */}
                   <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
@@ -329,7 +361,7 @@ export default function MyOrdersPage() {
                       {order.shipping_address.address}<br />
                       {order.shipping_address.city}, {order.shipping_address.postal_code}<br />
                       {order.shipping_address.country}<br />
-                      Tel: {order.shipping_address.phone}
+                      WhatsApp: {order.shipping_address.phone}
                     </p>
                   </div>
 

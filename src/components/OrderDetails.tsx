@@ -166,10 +166,10 @@ export default function OrderDetails() {
               <h2 className="text-xl font-semibold text-gray-900">
                 Pedido #{order.id?.substring(0, 8)}
               </h2>
-              <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusBadgeColor(order.status)}`}>
+              <div className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium ${getStatusBadgeColor(order.status)}`}>
                 {getStatusIcon(order.status)}
                 <span className="ml-2">{getStatusLabel(order.status)}</span>
-              </span>
+              </div>
             </div>
           </div>
 
