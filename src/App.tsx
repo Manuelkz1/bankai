@@ -118,5 +118,7 @@ function App() {
       </Routes>
       <WhatsAppButton />
     </Router>
+  );
+}
 
-
+export default App;
