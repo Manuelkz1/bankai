@@ -44,25 +44,42 @@ serve(async (req) => {
 
     if (type === 'payment') {
       const paymentInfo = await payment.get({ id: Number(data_id) });
-      console.log('Payment info:', JSON.stringify(paymentInfo, null, 2));
+      console.log('Payment info received from Mercado Pago:', JSON.stringify(paymentInfo, null, 2));
 
       const orderId = paymentInfo.external_reference;
       const status = paymentInfo.status;
+
+      let newPaymentStatus;
+      let newOrderStatus;
+
+      if (status === 'approved') {
+        newPaymentStatus = 'paid';
+        newOrderStatus = 'processing';
+      } else if (status === 'pending') {
+        newPaymentStatus = 'pending';
+        newOrderStatus = 'pending';
+      } else {
+        newPaymentStatus = 'failed';
+        newOrderStatus = 'failed'; // Consider setting a 'failed' status for the order as well
+      }
+
+      console.log(`Updating order ${orderId}: payment_status=${newPaymentStatus}, status=${newOrderStatus}`);
 
       // Update order status in Supabase
       const { error: updateError } = await supabase
         .from('orders')
         .update({ 
-          payment_status: status === 'approved' ? 'paid' : 
-                         status === 'pending' ? 'pending' : 'failed',
-          status: status === 'approved' ? 'processing' : 'pending',
+          payment_status: newPaymentStatus,
+          status: newOrderStatus,
           updated_at: new Date().toISOString()
         })
         .eq('id', orderId);
 
       if (updateError) {
-        console.error('Error updating order:', updateError);
+        console.error('Error updating order in Supabase:', updateError);
         throw updateError;
+      } else {
+        console.log(`Order ${orderId} updated successfully.`);
       }
 
       // Send notification if payment was successful
@@ -116,3 +133,4 @@ serve(async (req) => {
     );
   }
 });
+
