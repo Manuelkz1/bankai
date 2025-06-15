@@ -39,14 +39,10 @@ serve(async (req) => {
     let payload;
     try {
       payload = JSON.parse(body);
+      console.log('Parsed webhook payload:', JSON.stringify(payload, null, 2));
     } catch (e) {
-      console.error('Error parsing JSON payload:', e);
-      // Fallback for URL-encoded payloads, though Mercado Pago sends JSON
-      const params = new URLSearchParams(body);
-      payload = {
-        type: params.get('type') || params.get('topic'),
-        data: { id: params.get('data.id') || params.get('id') }
-      };
+      console.error('Error parsing JSON payload. Raw body:', body, 'Error:', e);
+      throw new Error('Invalid JSON payload received from webhook.');
     }
 
     const type = payload.type;
