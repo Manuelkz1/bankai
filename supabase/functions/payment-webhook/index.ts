@@ -94,7 +94,7 @@ serve(async (req) => {
       console.log('Payment info received from Mercado Pago API (payment type):', JSON.stringify(paymentInfo, null, 2));
       orderId = paymentInfo.external_reference;
       paymentStatus = paymentInfo.status;
-      console.log('Mercado Pago Payment external_reference:', orderId); // New log
+      console.log('Mercado Pago Payment external_reference:', orderId);
 
     } else if (type === 'merchant_order') {
       const resourceUrl = payload.resource;
@@ -130,7 +130,7 @@ serve(async (req) => {
       console.log('Merchant Order info received from Mercado Pago API:', JSON.stringify(merchantOrderInfo, null, 2));
 
       orderId = merchantOrderInfo.external_reference;
-      console.log('Mercado Pago Merchant Order external_reference:', orderId); // New log
+      console.log('Mercado Pago Merchant Order external_reference:', orderId);
 
       const approvedPayment = merchantOrderInfo.payments?.find(p => p.status === 'approved');
       if (approvedPayment) {
@@ -190,7 +190,7 @@ serve(async (req) => {
 
     console.log(`Attempting to update order ${orderId}: payment_status=${newPaymentStatus}, status=${newOrderStatus}`);
 
-    const { data, error: updateError } = await supabase
+    let { data, error: updateError } = await supabase
       .from('orders')
       .update({
         payment_status: newPaymentStatus,
@@ -198,15 +198,34 @@ serve(async (req) => {
         updated_at: new Date().toISOString()
       })
       .eq('id', orderId)
-      .select(); // Select the updated row to check if it was found
+      .select();
 
     if (updateError) {
-      console.error('Error updating order in Supabase:', updateError);
-      throw updateError;
+      console.error('Error updating order by ID in Supabase:', updateError);
+      // Do not throw here, try updating by external reference
     } else if (!data || data.length === 0) {
-      console.error(`No order found with ID ${orderId} to update in Supabase.`); // New log
+      console.log(`No order found with ID ${orderId}. Attempting to update by 'mp_external_reference'.`);
+
+      ({ data, error: updateError } = await supabase
+        .from('orders')
+        .update({
+          payment_status: newPaymentStatus,
+          status: newOrderStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('mp_external_reference', orderId) // Assuming a column named mp_external_reference
+        .select());
+
+      if (updateError) {
+        console.error('Error updating order by mp_external_reference in Supabase:', updateError);
+        throw updateError;
+      } else if (!data || data.length === 0) {
+        console.error(`No order found with ID ${orderId} or mp_external_reference ${orderId} to update in Supabase.`);
+      } else {
+        console.log(`Order ${orderId} updated successfully by mp_external_reference in Supabase. Updated data:`, JSON.stringify(data, null, 2));
+      }
     } else {
-      console.log(`Order ${orderId} updated successfully in Supabase. Updated data:`, JSON.stringify(data, null, 2)); // New log
+      console.log(`Order ${orderId} updated successfully by ID in Supabase. Updated data:`, JSON.stringify(data, null, 2));
     }
 
     if (paymentStatus === 'approved') {
