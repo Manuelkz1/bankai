@@ -24,10 +24,11 @@ serve(async (req) => {
 
     const accessToken = Deno.env.get('MERCADOPAGO_ACCESS_TOKEN');
     if (!accessToken) {
+      console.error('MERCADOPAGO_ACCESS_TOKEN not configured');
       throw new Error('MERCADOPAGO_ACCESS_TOKEN not configured');
     }
+    console.log('MercadoPago Access Token loaded successfully.');
 
-    // Configure MercadoPago
     const client = new MercadoPagoConfig({
       accessToken: accessToken
     });
@@ -56,12 +57,21 @@ serve(async (req) => {
       );
     }
 
-    console.log('Debug - payload.type:', payload.type, 'payload.topic:', payload.topic, 'payload.data?.id:', payload.data?.id, 'payload.resource:', payload.resource);
+    let type: string | undefined;
+    let data_id: string | undefined;
 
-    const type = payload.type || payload.topic;
-    let data_id = payload.data?.id;
-
-    console.log('Extracted from payload:', { type, data_id });
+    if (payload.type) {
+      type = payload.type;
+      data_id = payload.data?.id;
+    } else if (payload.topic) {
+      type = payload.topic;
+      if (payload.resource) {
+        data_id = payload.resource.split('/').pop();
+      } else if (payload.data?.id) {
+        data_id = payload.data.id;
+      }
+    }
+    console.log('Debug - Extracted type:', type, 'Extracted data_id:', data_id, 'payload.resource:', payload.resource);
 
     let orderId: string | undefined;
     let paymentStatus: string | undefined;
@@ -84,6 +94,7 @@ serve(async (req) => {
       console.log('Payment info received from Mercado Pago API (payment type):', JSON.stringify(paymentInfo, null, 2));
       orderId = paymentInfo.external_reference;
       paymentStatus = paymentInfo.status;
+      console.log('Mercado Pago Payment external_reference:', orderId); // New log
 
     } else if (type === 'merchant_order') {
       const resourceUrl = payload.resource;
@@ -119,17 +130,17 @@ serve(async (req) => {
       console.log('Merchant Order info received from Mercado Pago API:', JSON.stringify(merchantOrderInfo, null, 2));
 
       orderId = merchantOrderInfo.external_reference;
-      // Find the approved payment within the merchant order
+      console.log('Mercado Pago Merchant Order external_reference:', orderId); // New log
+
       const approvedPayment = merchantOrderInfo.payments?.find(p => p.status === 'approved');
       if (approvedPayment) {
         paymentStatus = approvedPayment.status;
       } else {
-        // If no approved payment, check if there's any pending payment
         const pendingPayment = merchantOrderInfo.payments?.find(p => p.status === 'pending');
         if (pendingPayment) {
           paymentStatus = pendingPayment.status;
         } else {
-          paymentStatus = 'failed'; // Default to failed if no approved or pending payments
+          paymentStatus = 'failed';
         }
       }
 
@@ -179,24 +190,25 @@ serve(async (req) => {
 
     console.log(`Attempting to update order ${orderId}: payment_status=${newPaymentStatus}, status=${newOrderStatus}`);
 
-    // Update order status in Supabase
-    const { error: updateError } = await supabase
+    const { data, error: updateError } = await supabase
       .from('orders')
       .update({
         payment_status: newPaymentStatus,
         status: newOrderStatus,
         updated_at: new Date().toISOString()
       })
-      .eq('id', orderId);
+      .eq('id', orderId)
+      .select(); // Select the updated row to check if it was found
 
     if (updateError) {
       console.error('Error updating order in Supabase:', updateError);
       throw updateError;
+    } else if (!data || data.length === 0) {
+      console.error(`No order found with ID ${orderId} to update in Supabase.`); // New log
     } else {
-      console.log(`Order ${orderId} updated successfully in Supabase.`);
+      console.log(`Order ${orderId} updated successfully in Supabase. Updated data:`, JSON.stringify(data, null, 2)); // New log
     }
 
-    // Send notification if payment was successful
     if (paymentStatus === 'approved') {
       const notificationUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/order-notifications`;
 
@@ -246,6 +258,5 @@ serve(async (req) => {
     );
   }
 });
-
 
 
