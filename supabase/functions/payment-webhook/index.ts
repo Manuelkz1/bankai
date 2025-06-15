@@ -36,9 +36,21 @@ serve(async (req) => {
     const body = await req.text();
     console.log('Received webhook payload:', body);
 
-    const params = new URLSearchParams(body);
-    const type = params.get('type') || params.get('topic');
-    const data_id = params.get('data.id') || params.get('id');
+    let payload;
+    try {
+      payload = JSON.parse(body);
+    } catch (e) {
+      console.error('Error parsing JSON payload:', e);
+      // Fallback for URL-encoded payloads, though Mercado Pago sends JSON
+      const params = new URLSearchParams(body);
+      payload = {
+        type: params.get('type') || params.get('topic'),
+        data: { id: params.get('data.id') || params.get('id') }
+      };
+    }
+
+    const type = payload.type;
+    const data_id = payload.data?.id;
 
     console.log('Processing webhook:', { type, data_id });
 
