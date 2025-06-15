@@ -34,28 +34,53 @@ serve(async (req) => {
 
     const payment = new Payment(client);
     const body = await req.text();
-    console.log('Received webhook payload:', body);
+    console.log('Received webhook payload (raw):', body);
 
-    let payload;
+    let payload: any;
     try {
       payload = JSON.parse(body);
       console.log('Parsed webhook payload:', JSON.stringify(payload, null, 2));
     } catch (e) {
       console.error('Error parsing JSON payload. Raw body:', body, 'Error:', e);
-      throw new Error('Invalid JSON payload received from webhook.');
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON payload received from webhook.' }),
+        { 
+          status: 400,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
     }
 
     const type = payload.type;
     const data_id = payload.data?.id;
 
-    console.log('Processing webhook:', { type, data_id });
+    console.log('Extracted from payload:', { type, data_id });
+
+    if (!type || !data_id) {
+      console.error('Missing type or data.id in webhook payload:', { type, data_id });
+      return new Response(
+        JSON.stringify({ error: 'Missing type or data.id in webhook payload.' }),
+        { 
+          status: 400,
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+    }
 
     if (type === 'payment') {
       const paymentInfo = await payment.get({ id: Number(data_id) });
-      console.log('Payment info received from Mercado Pago:', JSON.stringify(paymentInfo, null, 2));
+      console.log('Payment info received from Mercado Pago API:', JSON.stringify(paymentInfo, null, 2));
 
       const orderId = paymentInfo.external_reference;
       const status = paymentInfo.status;
+
+      console.log('Mercado Pago Payment Details:', { orderId, status });
 
       let newPaymentStatus;
       let newOrderStatus;
@@ -71,7 +96,7 @@ serve(async (req) => {
         newOrderStatus = 'failed'; // Consider setting a 'failed' status for the order as well
       }
 
-      console.log(`Updating order ${orderId}: payment_status=${newPaymentStatus}, status=${newOrderStatus}`);
+      console.log(`Attempting to update order ${orderId}: payment_status=${newPaymentStatus}, status=${newOrderStatus}`);
 
       // Update order status in Supabase
       const { error: updateError } = await supabase
@@ -87,7 +112,7 @@ serve(async (req) => {
         console.error('Error updating order in Supabase:', updateError);
         throw updateError;
       } else {
-        console.log(`Order ${orderId} updated successfully.`);
+        console.log(`Order ${orderId} updated successfully in Supabase.`);
       }
 
       // Send notification if payment was successful
@@ -124,7 +149,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Webhook error:', error);
+    console.error('Webhook processing error:', error);
     
     return new Response(
       JSON.stringify({ 
