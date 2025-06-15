@@ -41,7 +41,7 @@ serve(async (req) => {
     let payload: any;
     try {
       payload = JSON.parse(body);
-      console.log('Parsed webhook payload:', JSON.stringify(payload, null, 2));
+      console.log('Parsed webhook payload (after JSON.parse):', JSON.stringify(payload, null, 2));
     } catch (e) {
       console.error('Error parsing JSON payload. Raw body:', body, 'Error:', e);
       return new Response(
@@ -55,6 +55,8 @@ serve(async (req) => {
         }
       );
     }
+
+    console.log('Debug - payload.type:', payload.type, 'payload.topic:', payload.topic, 'payload.data?.id:', payload.data?.id);
 
     const type = payload.type || payload.topic;
     let data_id = payload.data?.id;
@@ -223,7 +225,7 @@ serve(async (req) => {
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json'
-        }
+          }
       }
     );
   } catch (error) {
