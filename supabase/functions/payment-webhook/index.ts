@@ -56,7 +56,7 @@ serve(async (req) => {
       );
     }
 
-    console.log('Debug - payload.type:', payload.type, 'payload.topic:', payload.topic, 'payload.data?.id:', payload.data?.id);
+    console.log('Debug - payload.type:', payload.type, 'payload.topic:', payload.topic, 'payload.data?.id:', payload.data?.id, 'payload.resource:', payload.resource);
 
     const type = payload.type || payload.topic;
     let data_id = payload.data?.id;
@@ -246,4 +246,6 @@ serve(async (req) => {
     );
   }
 });
+
+
 
