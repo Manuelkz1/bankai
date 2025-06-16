@@ -71,7 +71,7 @@ serve(async (req) => {
         data_id = payload.data.id;
       }
     }
-    console.log('Debug - Extracted type:', type, 'Extracted data_id:', data_id, 'payload.resource:', payload.resource);
+    console.log('Debug - Extracted type:', type, 'Extracted data_id:', data_id, 'payload.resource:', payload.resource, 'Full payload:', JSON.stringify(payload, null, 2));
 
     let orderId: string | undefined;
     let paymentStatus: string | undefined;
