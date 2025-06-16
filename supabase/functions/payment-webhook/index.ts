@@ -187,7 +187,7 @@ serve(async (req) => {
       newPaymentStatus = 'paid';
       newOrderStatus = 'completed';
     } else if (paymentStatus === 'pending') {
-      newPaymentStatus = 'pending      newOrderStatus = 'completed';
+      newOrderStatus = 'pending';
     } else {
       newPaymentStatus = 'failed';
       newOrderStatus = 'failed';
