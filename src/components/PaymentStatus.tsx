@@ -16,6 +16,21 @@ export function PaymentStatus() {
       if (status === 'approved' && orderId) {
         console.log('[PaymentStatus] Payment approved for orderId:', orderId);
         try {
+          // Update order status to paid and completed
+          const { error: updateError } = await supabase
+            .from('orders')
+            .update({ 
+              payment_status: 'paid',
+              status: 'completed' // Set status to completed for approved payments
+            })
+            .eq('id', orderId);
+            
+          if (updateError) {
+            console.error('[PaymentStatus] Error updating order status:', updateError);
+          } else {
+            console.log('[PaymentStatus] Order status updated to paid and completed');
+          }
+          
           // 1. Fetch order details to get all necessary info for the email
           const { data: orderData, error: orderError } = await supabase
             .from('orders')

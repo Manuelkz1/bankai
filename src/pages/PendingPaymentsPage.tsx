@@ -37,7 +37,7 @@ export default function PendingPaymentsPage() {
       setLoading(true);
       setError(null);
 
-      // Cargar pedidos con payment_pending o mercadopago pending sin URL de pago
+      // Load orders with payment_pending or mercadopago pending without payment URL
       const { data, error } = await supabase
         .from('orders')
         .select(`
@@ -55,7 +55,9 @@ export default function PendingPaymentsPage() {
         `)
         .eq('user_id', user.id)
         .or('payment_status.eq.payment_pending,and(payment_method.eq.mercadopago,payment_status.eq.pending)')
-        .neq('status', 'cancelled') // Excluir pedidos cancelados
+        .neq('status', 'cancelled') // Exclude cancelled orders
+        .neq('status', 'completed') // Exclude completed orders
+        .neq('payment_status', 'paid') // Exclude paid orders
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -77,7 +79,7 @@ export default function PendingPaymentsPage() {
     setProcessingOrder(order.id);
 
     try {
-      // Recrear preferencia de pago de MercadoPago
+      // Recreate MercadoPago payment preference
       const { data: payment, error: paymentError } = await supabase.functions.invoke('create-payment', {
         body: {
           orderId: order.id,
@@ -126,7 +128,7 @@ export default function PendingPaymentsPage() {
       
       console.log('Cancelando pedido:', orderId);
       
-      // Actualizar el estado del pedido a cancelado
+      // Update order status to cancelled
       const { error } = await supabase
         .from('orders')
         .update({ 
@@ -135,7 +137,7 @@ export default function PendingPaymentsPage() {
           updated_at: new Date().toISOString()
         })
         .eq('id', orderId)
-        .eq('user_id', user?.id); // Asegurar que solo el usuario propietario pueda cancelar
+        .eq('user_id', user?.id); // Ensure only the owner can cancel
 
       if (error) {
         console.error('Error cancelling order:', error);
@@ -145,7 +147,7 @@ export default function PendingPaymentsPage() {
       
       console.log('Pedido cancelado exitosamente en la base de datos');
       
-      // Remover el pedido de la lista local inmediatamente
+      // Remove the order from the local list immediately
       setOrders(prevOrders => {
         const updatedOrders = prevOrders.filter(order => order.id !== orderId);
         console.log('Pedidos actualizados:', updatedOrders.length);
@@ -154,7 +156,7 @@ export default function PendingPaymentsPage() {
       
       toast.success('Pedido cancelado exitosamente');
       
-      // Recargar la lista para asegurar sincronización
+      // Reload the list to ensure synchronization
       setTimeout(() => {
         loadPendingOrders();
       }, 1000);

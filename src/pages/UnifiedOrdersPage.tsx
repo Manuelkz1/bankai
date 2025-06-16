@@ -72,7 +72,7 @@ export default function UnifiedOrdersPage() {
           )
         `)
         .eq('user_id', user.id)
-        .neq('status', 'cancelled') // Excluir pedidos cancelados
+        .neq('status', 'cancelled') // Exclude cancelled orders
         .order('created_at', { ascending: false });
 
       if (fetchError) {
@@ -83,44 +83,44 @@ export default function UnifiedOrdersPage() {
 
       const orders = data || [];
 
-      // LÓGICA CORREGIDA: Separar pedidos completados y pendientes
+      // FIXED LOGIC: Separate completed and pending orders
       const completed = orders.filter(order => {
-        // Criterio 1: Pago contra entrega (siempre completado)
+        // Criterion 1: Cash on delivery (always completed)
         if (order.payment_method === 'cash_on_delivery') {
           return true;
         }
         
-        // Criterio 2: MercadoPago con pago aprobado
+        // Criterion 2: MercadoPago with paid status
         if (order.payment_method === 'mercadopago' && order.payment_status === 'paid') {
           return true;
         }
         
-        // Todos los demás casos van a pendientes
+        // Criterion 3: MercadoPago with completed status
+        if (order.payment_method === 'mercadopago' && order.status === 'completed') {
+          return true;
+        }
+        
+        // All other cases go to pending
         return false;
       });
 
       const pending = orders.filter(order => {
-        // Criterio 1: Pago contra entrega (nunca pendiente)
+        // Criterion 1: Cash on delivery (never pending)
         if (order.payment_method === 'cash_on_delivery') {
           return false;
         }
         
-        // Criterio 2: MercadoPago con pago aprobado (nunca pendiente)
+        // Criterion 2: MercadoPago with paid status (never pending)
         if (order.payment_method === 'mercadopago' && order.payment_status === 'paid') {
           return false;
         }
         
-        // Criterio 3: Todos los demás casos de MercadoPago van a pendientes
-        if (order.payment_method === 'mercadopago') {
-          return (
-            order.payment_status === 'pending' ||
-            order.payment_status === 'payment_pending' ||
-            order.payment_status === 'failed' ||
-            !order.payment_status
-          );
+        // Criterion 3: MercadoPago with completed status (never pending)
+        if (order.payment_method === 'mercadopago' && order.status === 'completed') {
+          return false;
         }
         
-        // Cualquier otro caso va a pendientes por seguridad
+        // All other cases go to pending
         return true;
       });
 
@@ -148,6 +148,7 @@ export default function UnifiedOrdersPage() {
     setProcessingOrder(order.id);
 
     try {
+      // Recreate MercadoPago payment preference
       const { data: payment, error: paymentError } = await supabase.functions.invoke('create-payment', {
         body: {
           orderId: order.id,
@@ -196,7 +197,7 @@ export default function UnifiedOrdersPage() {
       
       console.log('Cancelando pedido:', orderId);
       
-      // Actualizar el estado del pedido a cancelado
+      // Update order status to cancelled
       const { error } = await supabase
         .from('orders')
         .update({ 
@@ -205,7 +206,7 @@ export default function UnifiedOrdersPage() {
           updated_at: new Date().toISOString()
         })
         .eq('id', orderId)
-        .eq('user_id', user?.id); // Asegurar que solo el usuario propietario pueda cancelar
+        .eq('user_id', user?.id); // Ensure only the owner can cancel
 
       if (error) {
         console.error('Error cancelling order:', error);
@@ -215,7 +216,7 @@ export default function UnifiedOrdersPage() {
       
       console.log('Pedido cancelado exitosamente en la base de datos');
       
-      // Remover el pedido de la lista local inmediatamente
+      // Remove the order from the local list immediately
       setPendingOrders(prevOrders => {
         const updatedOrders = prevOrders.filter(order => order.id !== orderId);
         console.log('Pedidos pendientes actualizados:', updatedOrders.length);
@@ -224,7 +225,7 @@ export default function UnifiedOrdersPage() {
       
       toast.success('Pedido cancelado exitosamente');
       
-      // Recargar la lista para asegurar sincronización
+      // Reload the list to ensure synchronization
       setTimeout(() => {
         loadOrders();
       }, 1000);
@@ -249,6 +250,8 @@ export default function UnifiedOrdersPage() {
         return 'text-green-700 bg-green-100 border-green-200';
       case 'cancelled':
         return 'text-red-700 bg-red-100 border-red-200';
+      case 'completed':
+        return 'text-green-700 bg-green-100 border-green-200';
       default:
         return 'text-gray-700 bg-gray-100 border-gray-200';
     }
@@ -266,6 +269,8 @@ export default function UnifiedOrdersPage() {
         return <Award className="w-4 h-4" />;
       case 'cancelled':
         return <X className="w-4 h-4" />;
+      case 'completed':
+        return <CheckCircle className="w-4 h-4" />;
       default:
         return <Clock className="w-4 h-4" />;
     }
@@ -283,6 +288,8 @@ export default function UnifiedOrdersPage() {
         return 'Entregado';
       case 'cancelled':
         return 'Cancelado';
+      case 'completed':
+        return 'Completado';
       default:
         return status;
     }
@@ -486,6 +493,23 @@ export default function UnifiedOrdersPage() {
                           <div className="text-sm text-orange-700">Estado del pago</div>
                         </div>
                       </div>
+
+                      {/* Custom Message (if exists) */}
+                      {order.custom_message && (
+                        <div className="mb-6 p-4 bg-green-50 border border-green-100 rounded-lg">
+                          <div className="flex items-start">
+                            <div className="flex-shrink-0 mt-0.5">
+                              <svg className="h-5 w-5 text-green-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M18 10c0 4.418-3.582 8-8 8s-8-3.582-8-8 3.582-8 8-8 8 3.582 8 8zm-7-4a1 1 0 00-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <div className="ml-3">
+                              <h3 className="text-sm font-medium text-green-800">Mensaje sobre tu pedido</h3>
+                              <p className="mt-1 text-sm text-green-700">{order.custom_message}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Products Preview */}
                       <div className="mb-6">

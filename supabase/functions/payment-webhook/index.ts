@@ -185,7 +185,7 @@ serve(async (req) => {
 
     if (paymentStatus === 'approved') {
       newPaymentStatus = 'paid';
-      newOrderStatus = 'completed';
+      newOrderStatus = 'completed'; // Set to completed for approved payments
     } else if (paymentStatus === 'pending') {
       newOrderStatus = 'pending';
     } else {
@@ -282,5 +282,3 @@ serve(async (req) => {
     );
   }
 });
-
-
