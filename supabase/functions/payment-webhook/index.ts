@@ -60,16 +60,22 @@ serve(async (req) => {
     let type: string | undefined;
     let data_id: string | undefined;
 
-    if (payload.type) {
+    // Attempt to extract 'type'
+    if (typeof payload.type === 'string') {
       type = payload.type;
-      data_id = payload.data?.id;
-    } else if (payload.topic) {
+    } else if (typeof payload.topic === 'string') {
       type = payload.topic;
-      if (payload.resource) {
-        data_id = payload.resource.split('/').pop();
-      } else if (payload.data?.id) {
-        data_id = payload.data.id;
-      }
+    } else if (typeof payload.action === 'string' && payload.action.includes('.')) { // Sometimes action can be like "payment.created"
+      type = payload.action.split('.')[0];
+    }
+
+    // Attempt to extract 'data_id'
+    if (payload.data && (typeof payload.data.id === 'string' || typeof payload.data.id === 'number')) {
+      data_id = String(payload.data.id);
+    } else if (typeof payload.resource === 'string') {
+      data_id = payload.resource.split('/').pop();
+    } else if (typeof payload.id === 'string' || typeof payload.id === 'number') { // Fallback to top-level 'id'
+      data_id = String(payload.id);
     }
     console.log('Debug - Extracted type:', type, 'Extracted data_id:', data_id, 'payload.resource:', payload.resource, 'Full payload:', JSON.stringify(payload, null, 2));
 
@@ -179,10 +185,9 @@ serve(async (req) => {
 
     if (paymentStatus === 'approved') {
       newPaymentStatus = 'paid';
-      newOrderStatus = 'processing';
+      newOrderStatus = 'completed';
     } else if (paymentStatus === 'pending') {
-      newPaymentStatus = 'pending';
-      newOrderStatus = 'pending';
+      newPaymentStatus = 'pending      newOrderStatus = 'completed';
     } else {
       newPaymentStatus = 'failed';
       newOrderStatus = 'failed';
