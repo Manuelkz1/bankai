@@ -28,23 +28,6 @@ export default function ProductDetail() {
     loadProduct();
   }, [id]);
 
-  // Actualizar la cantidad mostrada cuando cambia el color o la talla seleccionada
-  useEffect(() => {
-    if (product) {
-      const existingCartItem = cartStore.items.find(
-        item =>
-          item.product.id === product.id &&
-          item.selectedColor === selectedColor &&
-          item.selectedSize === selectedSize
-      );
-      if (existingCartItem) {
-        setQuantity(existingCartItem.quantity);
-      } else {
-        setQuantity(1); // Cantidad predeterminada para una nueva selección
-      }
-    }
-  }, [selectedColor, selectedSize, product, cartStore.items]);
-
   const loadProduct = async () => {
     try {
       if (!id) return;
