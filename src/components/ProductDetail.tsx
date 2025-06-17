@@ -21,7 +21,7 @@ export default function ProductDetail() {
   const [selectedColor, setSelectedColor] = useState<string>('');
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-  const [quantity, setQuantity] = useState<number>(0);
+  const [quantity, setQuantity] = useState<number>(1); // Iniciar en 1 por defecto
   const [colorQuantities, setColorQuantities] = useState<Record<string, number>>({});
 
   useEffect(() => {
@@ -50,10 +50,10 @@ export default function ProductDetail() {
         const firstColor = data.available_colors[0];
         setSelectedColor(firstColor);
         
-        // Inicializar el contador de cantidades por color
+        // Inicializar el contador de cantidades por color con 1 por defecto
         const initialColorQuantities: Record<string, number> = {};
         data.available_colors.forEach(color => {
-          initialColorQuantities[color] = 0;
+          initialColorQuantities[color] = color === firstColor ? 1 : 0;
         });
         setColorQuantities(initialColorQuantities);
         
@@ -312,6 +312,14 @@ export default function ProductDetail() {
       if (colorImage && colorImage.image) {
         setSelectedImage(colorImage.image);
       }
+    }
+    
+    // Si este color no tiene cantidad asign ada, establecerla en 1 por defecto
+    if (!colorQuantities[color] && colorQuantities[color] !== 0) {
+      setColorQuantities(prev => ({
+        ...prev,
+        [color]: 1
+      }));
     }
   };
 

@@ -55,6 +55,7 @@ export const useCartStore = create<CartStore>()(
         const items = [...get().items];
         const effectivePrice = get().getEffectivePrice(product);
         
+        // Buscar si ya existe un item con el mismo producto y color/talla
         const existingItemIndex = items.findIndex(
           item => 
             item.product.id === product.id && 
@@ -63,10 +64,12 @@ export const useCartStore = create<CartStore>()(
         );
 
         if (existingItemIndex >= 0) {
+          // Si existe, actualizar la cantidad
           items[existingItemIndex].quantity += quantity;
           // Actualizar el precio efectivo en caso de que haya cambiado
           items[existingItemIndex].effectivePrice = effectivePrice;
         } else {
+          // Si no existe, añadir nuevo item
           items.push({ 
             product, 
             quantity, 
