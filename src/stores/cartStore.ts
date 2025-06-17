@@ -52,6 +52,7 @@ export const useCartStore = create<CartStore>()(
       },
 
       addItem: (product, quantity = 1, selectedColor, selectedSize) => {
+        console.log("cartStore - addItem called with:", { product: product.name, quantity, selectedColor, selectedSize });
         const items = [...get().items];
         const effectivePrice = get().getEffectivePrice(product);
         
@@ -68,6 +69,7 @@ export const useCartStore = create<CartStore>()(
           items[existingItemIndex].quantity += quantity;
           // Actualizar el precio efectivo en caso de que haya cambiado
           items[existingItemIndex].effectivePrice = effectivePrice;
+          console.log("cartStore - Existing item updated:", items[existingItemIndex]);
         } else {
           // Si no existe, añadir nuevo item
           items.push({ 
@@ -77,19 +79,24 @@ export const useCartStore = create<CartStore>()(
             selectedSize,
             effectivePrice
           });
+          console.log("cartStore - New item added:", items[items.length - 1]);
         }
 
         set({ items });
         get().calculateTotal();
+        console.log("cartStore - Current items after addItem:", get().items);
       },
 
       removeItem: (productId) => {
+        console.log("cartStore - removeItem called with:", { productId });
         const items = get().items.filter(item => item.product.id !== productId);
         set({ items });
         get().calculateTotal();
+        console.log("cartStore - Current items after removeItem:", get().items);
       },
 
       updateQuantity: (productId, quantity) => {
+        console.log("cartStore - updateQuantity called with:", { productId, quantity });
         const items = get().items.map(item => 
           item.product.id === productId 
             ? { ...item, quantity: Math.max(0, quantity) }
@@ -98,6 +105,7 @@ export const useCartStore = create<CartStore>()(
 
         set({ items });
         get().calculateTotal();
+        console.log("cartStore - Current items after updateQuantity:", get().items);
       },
 
       clearCart: () => {

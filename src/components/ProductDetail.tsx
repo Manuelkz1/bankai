@@ -26,7 +26,28 @@ export default function ProductDetail() {
 
   useEffect(() => {
     loadProduct();
+    console.log('ProductDetail - Initial load or ID change. Product ID:', id);
   }, [id]);
+
+  // Log para depurar cambios en selectedColor o selectedSize
+  useEffect(() => {
+    console.log('ProductDetail - selectedColor changed:', selectedColor, 'selectedSize changed:', selectedSize);
+    if (product) {
+      const existingCartItem = cartStore.items.find(
+        item =>
+          item.product.id === product.id &&
+          item.selectedColor === selectedColor &&
+          item.selectedSize === selectedSize
+      );
+      if (existingCartItem) {
+        console.log('ProductDetail - Found existing item in cart for this color/size:', existingCartItem.quantity);
+        setQuantity(existingCartItem.quantity);
+      } else {
+        console.log('ProductDetail - No existing item for this color/size, setting quantity to 1.');
+        setQuantity(1); // Cantidad predeterminada para una nueva selección
+      }
+    }
+  }, [selectedColor, selectedSize, product, cartStore.items]);
 
   const loadProduct = async () => {
     try {
