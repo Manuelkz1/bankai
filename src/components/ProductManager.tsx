@@ -29,8 +29,9 @@ export function ProductManager() {
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
   const [selectedManual, setSelectedManual] = useState<File | null>(null);
   const [previewImages, setPreviewImages] = useState<string[]>([]);
-  const [colorImages, setColorImages] = useState<{color: string, file: File | null, preview: string, existingUrl?: string}[]>([]);
+  const [colorImages, setColorImages] = useState<{color: string, file: File | null, preview: string, existingUrl?: string, stock?: number}[]>([]);
   const [newColor, setNewColor] = useState('');
+  const [newColorStock, setNewColorStock] = useState<number>(0);
   const [newSize, setNewSize] = useState('');
   const [activeTab, setActiveTab] = useState<'basic' | 'colors' | 'sizes' | 'shipping'>('basic');
   
@@ -169,6 +170,17 @@ export function ProductManager() {
     setCurrentProduct({ ...currentProduct, images: newImages });
   };
 
+  const handleColorStockChange = (colorIndex: number, stock: number) => {
+    setColorImages(prev => {
+      const updated = [...prev];
+      updated[colorIndex] = {
+        ...updated[colorIndex],
+        stock: Math.max(0, stock)
+      };
+      return updated;
+    });
+  };
+
   const addColor = () => {
     if (!newColor.trim()) {
       toast.error('Por favor ingresa un nombre de color');
@@ -192,10 +204,17 @@ export function ProductManager() {
     // Añadir a la lista de imágenes de color
     setColorImages(prev => [
       ...prev,
-      { color: newColor.trim(), file: null, preview: '', existingUrl: '' }
+      { 
+        color: newColor.trim(), 
+        file: null, 
+        preview: '', 
+        existingUrl: '',
+        stock: newColorStock || 0
+      }
     ]);
     
     setNewColor('');
+    setNewColorStock(0);
   };
 
   const removeColor = (colorToRemove: string) => {
@@ -303,7 +322,8 @@ export function ProductManager() {
         color,
         file: null,
         preview: '',
-        existingUrl: colorImageObj?.image || ''
+        existingUrl: colorImageObj?.image || '',
+        stock: colorImageObj?.stock || 0
       };
     });
     
@@ -343,7 +363,7 @@ export function ProductManager() {
       
       let imageUrls = currentProduct.images || [];
       let manualUrl = currentProduct.instructions_file;
-      let colorImagesData: ColorImage[] = currentProduct.color_images || [];
+      let colorImagesData: (ColorImage & { stock?: number })[] = currentProduct.color_images || [];
 
       // Subir nuevas imágenes
       if (selectedImages.length > 0) {
@@ -378,10 +398,12 @@ export function ProductManager() {
           const existingIndex = colorImagesData.findIndex(ci => ci.color === colorImage.color);
           if (existingIndex >= 0) {
             colorImagesData[existingIndex].image = colorImageUrl;
+            colorImagesData[existingIndex].stock = colorImage.stock;
           } else {
             colorImagesData.push({
               color: colorImage.color,
-              image: colorImageUrl
+              image: colorImageUrl,
+              stock: colorImage.stock
             });
           }
         } 
@@ -391,7 +413,24 @@ export function ProductManager() {
           if (existingIndex === -1) {
             colorImagesData.push({
               color: colorImage.color,
-              image: colorImage.existingUrl
+              image: colorImage.existingUrl,
+              stock: colorImage.stock
+            });
+          } else {
+            // Actualizar el stock para el color existente
+            colorImagesData[existingIndex].stock = colorImage.stock;
+          }
+        }
+        // Si solo hay stock pero no imagen, actualizar solo el stock
+        else if (colorImage.stock !== undefined) {
+          const existingIndex = colorImagesData.findIndex(ci => ci.color === colorImage.color);
+          if (existingIndex >= 0) {
+            colorImagesData[existingIndex].stock = colorImage.stock;
+          } else {
+            colorImagesData.push({
+              color: colorImage.color,
+              image: '',
+              stock: colorImage.stock
             });
           }
         }
@@ -566,7 +605,7 @@ export function ProductManager() {
 
                   <div>
                     <label htmlFor="stock" className="block text-sm font-medium text-gray-700 mb-1">
-                      Stock
+                      Stock General
                     </label>
                     <input
                       type="number"
@@ -577,6 +616,9 @@ export function ProductManager() {
                       className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                       required
                     />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Este es el stock general. Si usas colores, puedes definir stock por color en la pestaña "Colores".
+                    </p>
                   </div>
 
                   <div>
@@ -784,29 +826,49 @@ export function ProductManager() {
                 {currentProduct.show_colors && (
                   <>
                     <div className="mb-4">
-                      <div className="flex items-center">
-                        <input
-                          type="text"
-                          value={newColor}
-                          onChange={(e) => setNewColor(e.target.value)}
-                          placeholder="Nombre del color (ej: Rojo, Azul, etc.)"
-                          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                        />
-                        <button
-                          type="button"
-                          onClick={addColor}
-                          className="ml-2 inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                        >
-                          <Plus className="h-4 w-4 mr-1" />
-                          Añadir
-                        </button>
+                      <div className="flex items-center space-x-2">
+                        <div className="flex-1">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Nombre del color
+                          </label>
+                          <input
+                            type="text"
+                            value={newColor}
+                            onChange={(e) => setNewColor(e.target.value)}
+                            placeholder="Nombre del color (ej: Rojo, Azul, etc.)"
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Stock inicial
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={newColorStock}
+                            onChange={(e) => setNewColorStock(parseInt(e.target.value) || 0)}
+                            placeholder="Stock"
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                          />
+                        </div>
+                        <div className="pt-6">
+                          <button
+                            type="button"
+                            onClick={addColor}
+                            className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                          >
+                            <Plus className="h-4 w-4 mr-1" />
+                            Añadir
+                          </button>
+                        </div>
                       </div>
                     </div>
 
                     {/* Lista de colores */}
                     {(currentProduct.available_colors?.length || 0) > 0 ? (
                       <div className="space-y-4">
-                        <h4 className="font-medium text-gray-900">Colores disponibles</h4>
+                        <h4 className="font-medium text-gray-900 mb-4">Colores disponibles</h4>
                         {colorImages.map((colorItem, index) => (
                           <div key={index} className="border rounded-lg p-4 bg-gray-50">
                             <div className="flex justify-between items-center mb-3">
@@ -826,36 +888,56 @@ export function ProductManager() {
                               </button>
                             </div>
                             
-                            <div className="mt-2">
-                              <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Imagen para este color
-                              </label>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Imagen para este color
+                                </label>
+                                
+                                {/* Mostrar imagen existente o previsualización */}
+                                {(colorItem.existingUrl || colorItem.preview) && (
+                                  <div className="mb-3">
+                                    <img 
+                                      src={colorItem.preview || colorItem.existingUrl} 
+                                      alt={`Color ${colorItem.color}`} 
+                                      className="h-32 w-32 object-cover rounded-md border border-gray-300"
+                                    />
+                                  </div>
+                                )}
+                                
+                                <input
+                                  type="file"
+                                  onChange={(e) => handleColorImageSelect(e, index)}
+                                  accept="image/jpeg,image/png,image/gif,image/webp"
+                                  className="block w-full text-sm text-gray-500
+                                    file:mr-4 file:py-2 file:px-4
+                                    file:rounded-md file:border-0
+                                    file:text-sm file:font-medium
+                                    file:bg-indigo-50 file:text-indigo-700
+                                    hover:file:bg-indigo-100"
+                                />
+                                <p className="mt-1 text-xs text-gray-500">
+                                  Selecciona una imagen que represente este color.
+                                </p>
+                              </div>
                               
-                              {/* Mostrar imagen existente o previsualización */}
-                              {(colorItem.existingUrl || colorItem.preview) && (
-                                <div className="mb-3">
-                                  <img 
-                                    src={colorItem.preview || colorItem.existingUrl} 
-                                    alt={`Color ${colorItem.color}`} 
-                                    className="h-32 w-32 object-cover rounded-md border border-gray-300"
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  Stock para este color
+                                </label>
+                                <div className="flex items-center">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={colorItem.stock || 0}
+                                    onChange={(e) => handleColorStockChange(index, parseInt(e.target.value) || 0)}
+                                    className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                                   />
                                 </div>
-                              )}
-                              
-                              <input
-                                type="file"
-                                onChange={(e) => handleColorImageSelect(e, index)}
-                                accept="image/jpeg,image/png,image/gif,image/webp"
-                                className="block w-full text-sm text-gray-500
-                                  file:mr-4 file:py-2 file:px-4
-                                  file:rounded-md file:border-0
-                                  file:text-sm file:font-medium
-                                  file:bg-indigo-50 file:text-indigo-700
-                                  hover:file:bg-indigo-100"
-                              />
-                              <p className="mt-1 text-xs text-gray-500">
-                                Selecciona una imagen que represente este color.
-                              </p>
+                                <p className="mt-1 text-xs text-gray-500">
+                                  Cantidad disponible para este color específico.
+                                </p>
+                              </div>
                             </div>
                           </div>
                         ))}

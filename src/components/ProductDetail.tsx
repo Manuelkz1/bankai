@@ -21,7 +21,8 @@ export default function ProductDetail() {
   const [selectedColor, setSelectedColor] = useState<string>('');
   const [selectedSize, setSelectedSize] = useState<string>('');
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-  const [quantity, setQuantity] = useState<number>(1);
+  const [quantity, setQuantity] = useState<number>(0);
+  const [colorQuantities, setColorQuantities] = useState<Record<string, number>>({});
 
   useEffect(() => {
     loadProduct();
@@ -48,6 +49,13 @@ export default function ProductDetail() {
       if (data?.show_colors && data?.available_colors?.length > 0) {
         const firstColor = data.available_colors[0];
         setSelectedColor(firstColor);
+        
+        // Inicializar el contador de cantidades por color
+        const initialColorQuantities: Record<string, number> = {};
+        data.available_colors.forEach(color => {
+          initialColorQuantities[color] = 0;
+        });
+        setColorQuantities(initialColorQuantities);
         
         // Si hay imágenes específicas para este color, mostrarla
         if (data.color_images && data.color_images.length > 0) {
@@ -126,35 +134,76 @@ export default function ProductDetail() {
       return;
     }
 
+    // Validar que la cantidad sea mayor que cero
+    if (product.show_colors) {
+      if (colorQuantities[selectedColor] <= 0) {
+        toast.error('Por favor selecciona una cantidad mayor a cero');
+        return;
+      }
+    } else {
+      if (quantity <= 0) {
+        toast.error('Por favor selecciona una cantidad mayor a cero');
+        return;
+      }
+    }
+
     // Add promotion data to product if available
     const productWithPromotion = product.promotion 
       ? { ...product, promotion: product.promotion } 
       : product;
 
-    cartStore.addItem(productWithPromotion, quantity, selectedColor, selectedSize);
+    // Si estamos usando colores, añadir la cantidad del color seleccionado
+    if (product.show_colors) {
+      cartStore.addItem(productWithPromotion, colorQuantities[selectedColor], selectedColor, selectedSize);
 
-    toast.success(
-      <div className="flex items-center">
-        <div>
-          <p className="font-medium">¡Producto agregado al carrito!</p>
-          <p className="text-sm">
-            {quantity} {quantity > 1 ? 'unidades' : 'unidad'} de {product.name}
-            {selectedColor && ` (${selectedColor})`}
-            {selectedSize && ` - Talla ${selectedSize}`}
-          </p>
-        </div>
-      </div>,
-      {
-        duration: 3000,
-        position: 'top-center',
-        style: {
-          background: '#4F46E5',
-          color: '#ffffff',
-          padding: '1rem',
-          borderRadius: '0.5rem',
-        },
-      }
-    );
+      toast.success(
+        <div className="flex items-center">
+          <div>
+            <p className="font-medium">¡Producto agregado al carrito!</p>
+            <p className="text-sm">
+              {colorQuantities[selectedColor]} {colorQuantities[selectedColor] > 1 ? 'unidades' : 'unidad'} de {product.name}
+              {selectedColor && ` (${selectedColor})`}
+              {selectedSize && ` - Talla ${selectedSize}`}
+            </p>
+          </div>
+        </div>,
+        {
+          duration: 3000,
+          position: 'top-center',
+          style: {
+            background: '#4F46E5',
+            color: '#ffffff',
+            padding: '1rem',
+            borderRadius: '0.5rem',
+          },
+        }
+      );
+    } else {
+      cartStore.addItem(productWithPromotion, quantity, selectedColor, selectedSize);
+
+      toast.success(
+        <div className="flex items-center">
+          <div>
+            <p className="font-medium">¡Producto agregado al carrito!</p>
+            <p className="text-sm">
+              {quantity} {quantity > 1 ? 'unidades' : 'unidad'} de {product.name}
+              {selectedColor && ` (${selectedColor})`}
+              {selectedSize && ` - Talla ${selectedSize}`}
+            </p>
+          </div>
+        </div>,
+        {
+          duration: 3000,
+          position: 'top-center',
+          style: {
+            background: '#4F46E5',
+            color: '#ffffff',
+            padding: '1rem',
+            borderRadius: '0.5rem',
+          },
+        }
+      );
+    }
 
     cartStore.toggleCart();
   };
@@ -175,13 +224,33 @@ export default function ProductDetail() {
       return;
     }
 
+    // Validar que la cantidad sea mayor que cero
+    if (product.show_colors) {
+      if (colorQuantities[selectedColor] <= 0) {
+        toast.error('Por favor selecciona una cantidad mayor a cero');
+        return;
+      }
+    } else {
+      if (quantity <= 0) {
+        toast.error('Por favor selecciona una cantidad mayor a cero');
+        return;
+      }
+    }
+
     // Add promotion data to product if available
     const productWithPromotion = product.promotion 
       ? { ...product, promotion: product.promotion } 
       : product;
 
     cartStore.clearCart();
-    cartStore.addItem(productWithPromotion, quantity, selectedColor, selectedSize);
+    
+    // Si estamos usando colores, añadir la cantidad del color seleccionado
+    if (product.show_colors) {
+      cartStore.addItem(productWithPromotion, colorQuantities[selectedColor], selectedColor, selectedSize);
+    } else {
+      cartStore.addItem(productWithPromotion, quantity, selectedColor, selectedSize);
+    }
+    
     navigate('/checkout');
   };
 
@@ -212,9 +281,11 @@ export default function ProductDetail() {
     }
     
     if (['2x1', '3x1', '3x2'].includes(product.promotion.type)) {
-      if (quantity >= product.promotion.buy_quantity) {
-        const fullPriceSets = Math.floor(quantity / product.promotion.buy_quantity);
-        const remainder = quantity % product.promotion.buy_quantity;
+      const currentQty = product.show_colors ? colorQuantities[selectedColor] : quantity;
+      
+      if (currentQty >= product.promotion.buy_quantity) {
+        const fullPriceSets = Math.floor(currentQty / product.promotion.buy_quantity);
+        const remainder = currentQty % product.promotion.buy_quantity;
         
         const paidItems = (fullPriceSets * product.promotion.get_quantity) + remainder;
         
@@ -222,12 +293,57 @@ export default function ProductDetail() {
       }
     }
     
-    return (quantity * product.price).toFixed(2);
+    const currentQty = product.show_colors ? colorQuantities[selectedColor] : quantity;
+    return (currentQty * product.price).toFixed(2);
   };
   
   const getRegularPrice = () => {
     if (!product) return null;
-    return (quantity * product.price).toFixed(2);
+    const currentQty = product.show_colors ? colorQuantities[selectedColor] : quantity;
+    return (currentQty * product.price).toFixed(2);
+  };
+
+  const handleColorChange = (color: string) => {
+    setSelectedColor(color);
+    
+    // Buscar imagen específica para este color
+    if (product?.color_images && product.color_images.length > 0) {
+      const colorImage = product.color_images.find(ci => ci.color === color);
+      if (colorImage && colorImage.image) {
+        setSelectedImage(colorImage.image);
+      }
+    }
+  };
+
+  const handleQuantityChange = (newQuantity: number) => {
+    if (product?.show_colors && selectedColor) {
+      // Actualizar la cantidad para el color seleccionado
+      setColorQuantities(prev => ({
+        ...prev,
+        [selectedColor]: Math.max(0, newQuantity)
+      }));
+    } else {
+      // Actualizar la cantidad general
+      setQuantity(Math.max(0, newQuantity));
+    }
+  };
+
+  const getCurrentQuantity = (): number => {
+    if (product?.show_colors && selectedColor) {
+      return colorQuantities[selectedColor] || 0;
+    }
+    return quantity;
+  };
+
+  const getColorStock = (color: string): number => {
+    if (!product || !product.color_images) return product?.stock || 0;
+    
+    const colorData = product.color_images.find(ci => ci.color === color);
+    if (colorData && typeof colorData.stock === 'number') {
+      return colorData.stock;
+    }
+    
+    return product.stock || 0;
   };
 
   if (loading) {
@@ -337,7 +453,7 @@ export default function ProductDetail() {
                       </div>
                     ) : (
                       <div className="flex flex-col">
-                        {quantity >= product.promotion.buy_quantity ? (
+                        {getCurrentQuantity() >= product.promotion.buy_quantity ? (
                           <>
                             <div className="flex items-center">
                               <p className="text-2xl text-gray-500 line-through mr-2">${getRegularPrice()}</p>
@@ -384,34 +500,32 @@ export default function ProductDetail() {
               <div className="mt-6">
                 <h3 className="text-sm font-medium text-gray-900">Colores disponibles</h3>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {product.available_colors.map((color) => (
-                    <button
-                      key={color}
-                      onClick={() => {
-                        setSelectedColor(color);
-                        
-                        // Buscar imagen específica para este color
-                        if (product.color_images && product.color_images.length > 0) {
-                          const colorImage = product.color_images.find(ci => ci.color === color);
-                          if (colorImage && colorImage.image) {
-                            setSelectedImage(colorImage.image);
-                          }
-                        }
-                      }}
-                      className={`relative px-3 py-1 rounded-full text-sm ${
-                        selectedColor === color
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                      }`}
-                    >
-                      {selectedColor === color && (
-                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                          <Check className="h-3 w-3 text-white" />
-                        </span>
-                      )}
-                      {color}
-                    </button>
-                  ))}
+                  {product.available_colors.map((color) => {
+                    const colorStock = getColorStock(color);
+                    const isDisabled = colorStock <= 0;
+                    
+                    return (
+                      <button
+                        key={color}
+                        onClick={() => !isDisabled && handleColorChange(color)}
+                        disabled={isDisabled}
+                        className={`relative px-3 py-1 rounded-full text-sm ${
+                          isDisabled 
+                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'
+                            : selectedColor === color
+                              ? 'bg-indigo-600 text-white'
+                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        {selectedColor === color && !isDisabled && (
+                          <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                            <Check className="h-3 w-3 text-white" />
+                          </span>
+                        )}
+                        {color} {colorStock > 0 ? `(${colorStock})` : '(Agotado)'}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -483,7 +597,7 @@ export default function ProductDetail() {
                   <button
                     type="button"
                     className="px-3 py-1 text-gray-600 hover:text-gray-900 focus:outline-none"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    onClick={() => handleQuantityChange(getCurrentQuantity() - 1)}
                   >
                     -
                   </button>
@@ -491,16 +605,21 @@ export default function ProductDetail() {
                     type="number"
                     id="quantity"
                     name="quantity"
-                    min="1"
-                    max={product.stock}
-                    value={quantity}
-                    onChange={(e) => setQuantity(Math.min(product.stock, Math.max(1, parseInt(e.target.value) || 1)))}
+                    min="0"
+                    max={product.show_colors && selectedColor ? getColorStock(selectedColor) : product.stock}
+                    value={getCurrentQuantity()}
+                    onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 0)}
                     className="w-12 text-center border-0 focus:ring-0"
                   />
                   <button
                     type="button"
                     className="px-3 py-1 text-gray-600 hover:text-gray-900 focus:outline-none"
-                    onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                    onClick={() => {
+                      const maxStock = product.show_colors && selectedColor 
+                        ? getColorStock(selectedColor) 
+                        : product.stock;
+                      handleQuantityChange(Math.min(maxStock, getCurrentQuantity() + 1));
+                    }}
                   >
                     +
                   </button>
@@ -510,7 +629,7 @@ export default function ProductDetail() {
               <div className="flex sm:flex-row gap-4">
                 <button
                   onClick={handleAddToCart}
-                  disabled={product.stock === 0}
+                  disabled={product.stock === 0 || getCurrentQuantity() === 0}
                   className="flex-1 bg-indigo-600 border border-transparent rounded-md py-3 px-8 flex items-center justify-center text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Agregar al carrito
@@ -518,7 +637,7 @@ export default function ProductDetail() {
 
                 <button
                   onClick={handleBuyNow}
-                  disabled={product.stock === 0}
+                  disabled={product.stock === 0 || getCurrentQuantity() === 0}
                   className="flex-1 bg-indigo-100 border border-transparent rounded-md py-3 px-8 flex items-center justify-center text-base font-medium text-indigo-700 hover:bg-indigo-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Comprar ahora

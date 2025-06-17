@@ -28,6 +28,7 @@ export interface Product {
 export interface ColorImage {
   color: string;
   image: string;
+  stock?: number;
 }
 
 export interface CartItem {
