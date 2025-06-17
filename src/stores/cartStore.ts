@@ -83,15 +83,15 @@ export const useCartStore = create<CartStore>()(
         get().calculateTotal();
       },
 
-      removeItem: (productId) => {
-        const items = get().items.filter(item => item.product.id !== productId);
+      removeItem: (productId: string, selectedColor?: string, selectedSize?: string) => {
+        const items = get().items.filter(item => !(item.product.id === productId && item.selectedColor === selectedColor && item.selectedSize === selectedSize));
         set({ items });
         get().calculateTotal();
       },
 
-      updateQuantity: (productId, quantity) => {
+      updateQuantity: (productId: string, quantity: number, selectedColor?: string, selectedSize?: string) => {
         const items = get().items.map(item => 
-          item.product.id === productId 
+          (item.product.id === productId && item.selectedColor === selectedColor && item.selectedSize === selectedSize)
             ? { ...item, quantity: Math.max(0, quantity) }
             : item
         ).filter(item => item.quantity > 0);
