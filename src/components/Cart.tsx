@@ -20,7 +20,7 @@ export default function Cart() {
     
     // Pequeña animación antes de remover
     setTimeout(() => {
-      cartStore.removeItem(productId);
+      cartStore.removeItem(productId, selectedColor, selectedSize);
       setRemovingItems(prev => {
         const newSet = new Set(prev);
         newSet.delete(itemKey);
@@ -260,7 +260,7 @@ export default function Cart() {
                             <div className="flex items-center justify-between mt-3">
                               <div className="flex items-center bg-gray-50 rounded-lg p-1">
                                 <button
-                                  onClick={() => cartStore.updateQuantity(item.product.id, item.quantity - 1)}
+                                  onClick={() => cartStore.updateQuantity(item.product.id, item.quantity - 1, item.selectedColor, item.selectedSize)}
                                   className="w-8 h-8 rounded-lg bg-white shadow-sm hover:bg-gray-50 flex items-center justify-center text-gray-600 hover:text-indigo-600 transition-colors duration-200"
                                 >
                                   <Minus className="h-4 w-4" />
@@ -269,7 +269,7 @@ export default function Cart() {
                                   {item.quantity}
                                 </span>
                                 <button
-                                  onClick={() => cartStore.updateQuantity(item.product.id, item.quantity + 1)}
+                                  onClick={() => cartStore.updateQuantity(item.product.id, item.quantity + 1, item.selectedColor, item.selectedSize)}
                                   className="w-8 h-8 rounded-lg bg-white shadow-sm hover:bg-gray-50 flex items-center justify-center text-gray-600 hover:text-indigo-600 transition-colors duration-200"
                                 >
                                   <Plus className="h-4 w-4" />

@@ -16,8 +16,8 @@ interface CartStore {
   total: number;
   
   addItem: (product: Product, quantity: number, selectedColor?: string, selectedSize?: string) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  removeItem: (productId: string, selectedColor?: string, selectedSize?: string) => void;
+  updateQuantity: (productId: string, quantity: number, selectedColor?: string, selectedSize?: string) => void;
   clearCart: () => void;
   toggleCart: () => void;
   calculateTotal: () => void;
@@ -87,18 +87,24 @@ export const useCartStore = create<CartStore>()(
         console.log("cartStore - Current items after addItem:", get().items);
       },
 
-      removeItem: (productId) => {
-        console.log("cartStore - removeItem called with:", { productId });
-        const items = get().items.filter(item => item.product.id !== productId);
+      removeItem: (productId, selectedColor, selectedSize) => {
+        console.log("cartStore - removeItem called with:", { productId, selectedColor, selectedSize });
+        const items = get().items.filter(item => 
+          item.product.id !== productId || 
+          item.selectedColor !== selectedColor ||
+          item.selectedSize !== selectedSize
+        );
         set({ items });
         get().calculateTotal();
         console.log("cartStore - Current items after removeItem:", get().items);
       },
 
-      updateQuantity: (productId, quantity) => {
-        console.log("cartStore - updateQuantity called with:", { productId, quantity });
+      updateQuantity: (productId, quantity, selectedColor, selectedSize) => {
+        console.log("cartStore - updateQuantity called with:", { productId, quantity, selectedColor, selectedSize });
         const items = get().items.map(item => 
-          item.product.id === productId 
+          item.product.id === productId &&
+          item.selectedColor === selectedColor &&
+          item.selectedSize === selectedSize
             ? { ...item, quantity: Math.max(0, quantity) }
             : item
         ).filter(item => item.quantity > 0);
