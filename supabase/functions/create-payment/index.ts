@@ -76,6 +76,16 @@ serve(async (req) => {
 
     // Log the items being sent to MercadoPago
     console.log('Items for MercadoPago:', JSON.stringify(items, null, 2));
+    
+    // Debug: Log individual item prices
+    items.forEach((item, index) => {
+      console.log(`Item ${index}:`, {
+        name: item.product?.name,
+        basePrice: item.product?.price,
+        effectivePrice: item.price,
+        quantity: item.quantity
+      });
+    });
 
     // Construct preference data
     const preferenceData = {
@@ -109,7 +119,11 @@ serve(async (req) => {
       expiration_date_to: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes
       notification_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/payment-webhook`,
       statement_descriptor: "Calidad Premium",
-      binary_mode: true // Only approved or rejected, no pending
+      binary_mode: true, // Only approved or rejected, no pending
+      metadata: {
+        order_id: orderId,
+        timestamp: new Date().toISOString()
+      }
     };
 
     console.log('Creating MercadoPago preference');
