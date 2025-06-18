@@ -71,10 +71,10 @@ export default function ProductDetail() {
         const firstColor = data.available_colors[0];
         setSelectedColor(firstColor);
         
-        // Inicializar el contador de cantidades por color con 1 por defecto
+        // Inicializar el contador de cantidades por color todos en 0
         const initialColorQuantities: Record<string, number> = {};
         data.available_colors.forEach(color => {
-          initialColorQuantities[color] = color === firstColor ? 1 : 0;
+          initialColorQuantities[color] = 0;
         });
         setColorQuantities(initialColorQuantities);
         
@@ -143,29 +143,10 @@ export default function ProductDetail() {
     e.preventDefault();
     if (!product) return;
     
-    // Validar selección de color si es necesario
-    if (product.show_colors && product.available_colors?.length && !selectedColor) {
-      toast.error('Por favor selecciona un color');
-      return;
-    }
-    
     // Validar selección de talla si es necesario
     if (product.show_sizes && product.available_sizes?.length && !selectedSize) {
       toast.error('Por favor selecciona una talla');
       return;
-    }
-
-    // Validar que la cantidad sea mayor que cero
-    if (product.show_colors) {
-      if (colorQuantities[selectedColor] <= 0) {
-        toast.error('Por favor selecciona una cantidad mayor a cero');
-        return;
-      }
-    } else {
-      if (quantity <= 0) {
-        toast.error('Por favor selecciona una cantidad mayor a cero');
-        return;
-      }
     }
 
     // Add promotion data to product if available
@@ -173,23 +154,38 @@ export default function ProductDetail() {
       ? { ...product, promotion: product.promotion } 
       : product;
 
-    // Si estamos usando colores, añadir la cantidad del color seleccionado
+    // Si estamos usando colores, añadir TODAS las variantes con cantidad > 0
     if (product.show_colors) {
-      cartStore.addItem(productWithPromotion, colorQuantities[selectedColor], selectedColor, selectedSize);
+      const colorsToAdd = Object.entries(colorQuantities).filter(([color, qty]) => qty > 0);
+      
+      if (colorsToAdd.length === 0) {
+        toast.error('Por favor selecciona al menos una cantidad mayor a cero para cualquier color');
+        return;
+      }
+
+      let totalItems = 0;
+      const addedColors: string[] = [];
+
+      // Añadir cada color con su cantidad al carrito
+      colorsToAdd.forEach(([color, qty]) => {
+        cartStore.addItem(productWithPromotion, qty, color, selectedSize);
+        totalItems += qty;
+        addedColors.push(`${color} (${qty})`);
+      });
 
       toast.success(
         <div className="flex items-center">
           <div>
             <p className="font-medium">¡Producto agregado al carrito!</p>
             <p className="text-sm">
-              {colorQuantities[selectedColor]} {colorQuantities[selectedColor] > 1 ? 'unidades' : 'unidad'} de {product.name}
-              {selectedColor && ` (${selectedColor})`}
+              {totalItems} {totalItems > 1 ? 'unidades' : 'unidad'} de {product.name}
+              <br />Colores: {addedColors.join(', ')}
               {selectedSize && ` - Talla ${selectedSize}`}
             </p>
           </div>
         </div>,
         {
-          duration: 3000,
+          duration: 4000,
           position: 'top-center',
           style: {
             background: '#4F46E5',
@@ -200,6 +196,12 @@ export default function ProductDetail() {
         }
       );
     } else {
+      // Validar que la cantidad sea mayor que cero para productos sin colores
+      if (quantity <= 0) {
+        toast.error('Por favor selecciona una cantidad mayor a cero');
+        return;
+      }
+
       cartStore.addItem(productWithPromotion, quantity, selectedColor, selectedSize);
 
       toast.success(
@@ -232,30 +234,11 @@ export default function ProductDetail() {
   const handleBuyNow = (e: React.MouseEvent) => {
     e.preventDefault();
     if (!product) return;
-
-    // Validar selección de color si es necesario
-    if (product.show_colors && product.available_colors?.length && !selectedColor) {
-      toast.error('Por favor selecciona un color');
-      return;
-    }
     
     // Validar selección de talla si es necesario
     if (product.show_sizes && product.available_sizes?.length && !selectedSize) {
       toast.error('Por favor selecciona una talla');
       return;
-    }
-
-    // Validar que la cantidad sea mayor que cero
-    if (product.show_colors) {
-      if (colorQuantities[selectedColor] <= 0) {
-        toast.error('Por favor selecciona una cantidad mayor a cero');
-        return;
-      }
-    } else {
-      if (quantity <= 0) {
-        toast.error('Por favor selecciona una cantidad mayor a cero');
-        return;
-      }
     }
 
     // Add promotion data to product if available
@@ -265,10 +248,26 @@ export default function ProductDetail() {
 
     cartStore.clearCart();
     
-    // Si estamos usando colores, añadir la cantidad del color seleccionado
+    // Si estamos usando colores, añadir TODAS las variantes con cantidad > 0
     if (product.show_colors) {
-      cartStore.addItem(productWithPromotion, colorQuantities[selectedColor], selectedColor, selectedSize);
+      const colorsToAdd = Object.entries(colorQuantities).filter(([color, qty]) => qty > 0);
+      
+      if (colorsToAdd.length === 0) {
+        toast.error('Por favor selecciona al menos una cantidad mayor a cero para cualquier color');
+        return;
+      }
+
+      // Añadir cada color con su cantidad al carrito
+      colorsToAdd.forEach(([color, qty]) => {
+        cartStore.addItem(productWithPromotion, qty, color, selectedSize);
+      });
     } else {
+      // Validar que la cantidad sea mayor que cero para productos sin colores
+      if (quantity <= 0) {
+        toast.error('Por favor selecciona una cantidad mayor a cero');
+        return;
+      }
+      
       cartStore.addItem(productWithPromotion, quantity, selectedColor, selectedSize);
     }
     
@@ -302,7 +301,9 @@ export default function ProductDetail() {
     }
     
     if (['2x1', '3x1', '3x2'].includes(product.promotion.type)) {
-      const currentQty = product.show_colors ? colorQuantities[selectedColor] : quantity;
+      const currentQty = product.show_colors 
+        ? Object.values(colorQuantities).reduce((sum, qty) => sum + qty, 0)
+        : quantity;
       
       if (currentQty >= product.promotion.buy_quantity) {
         const fullPriceSets = Math.floor(currentQty / product.promotion.buy_quantity);
@@ -314,13 +315,17 @@ export default function ProductDetail() {
       }
     }
     
-    const currentQty = product.show_colors ? colorQuantities[selectedColor] : quantity;
+    const currentQty = product.show_colors 
+      ? Object.values(colorQuantities).reduce((sum, qty) => sum + qty, 0)
+      : quantity;
     return (currentQty * product.price).toFixed(2);
   };
   
   const getRegularPrice = () => {
     if (!product) return null;
-    const currentQty = product.show_colors ? colorQuantities[selectedColor] : quantity;
+    const currentQty = product.show_colors 
+      ? Object.values(colorQuantities).reduce((sum, qty) => sum + qty, 0)
+      : quantity;
     return (currentQty * product.price).toFixed(2);
   };
 
@@ -358,8 +363,8 @@ export default function ProductDetail() {
   };
 
   const getCurrentQuantity = (): number => {
-    if (product?.show_colors && selectedColor) {
-      return colorQuantities[selectedColor] || 0;
+    if (product?.show_colors) {
+      return Object.values(colorQuantities).reduce((sum, qty) => sum + qty, 0);
     }
     return quantity;
   };
@@ -524,37 +529,93 @@ export default function ProductDetail() {
               </div>
             </div>
 
-            {/* Color selection */}
+            {/* Color selection with individual quantities */}
             {product.show_colors && product.available_colors && product.available_colors.length > 0 && (
               <div className="mt-6">
-                <h3 className="text-sm font-medium text-gray-900">Colores disponibles</h3>
-                <div className="mt-2 flex flex-wrap gap-2">
+                <h3 className="text-sm font-medium text-gray-900">Selecciona colores y cantidades</h3>
+                <div className="mt-4 space-y-3">
                   {product.available_colors.map((color) => {
                     const colorStock = getColorStock(color);
                     const isDisabled = colorStock <= 0;
+                    const currentQuantity = colorQuantities[color] || 0;
                     
                     return (
-                      <button
-                        key={color}
-                        onClick={() => !isDisabled && handleColorChange(color)}
-                        disabled={isDisabled}
-                        className={`relative px-3 py-1 rounded-full text-sm ${
-                          isDisabled 
-                            ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'
-                            : selectedColor === color
-                              ? 'bg-indigo-600 text-white'
-                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                        }`}
-                      >
-                        {selectedColor === color && !isDisabled && (
-                          <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                            <Check className="h-3 w-3 text-white" />
-                          </span>
+                      <div key={color} className="flex items-center justify-between border border-gray-200 rounded-lg p-3">
+                        <div className="flex items-center space-x-3">
+                          <div 
+                            className={`w-6 h-6 rounded-full border-2 ${
+                              isDisabled 
+                                ? 'bg-gray-100 border-gray-300' 
+                                : 'border-gray-400'
+                            }`}
+                            style={{
+                              backgroundColor: isDisabled ? '#f3f4f6' : color.toLowerCase()
+                            }}
+                          />
+                          <div>
+                            <span className={`font-medium ${isDisabled ? 'text-gray-400' : 'text-gray-900'}`}>
+                              {color}
+                            </span>
+                            <div className="text-sm text-gray-500">
+                              {colorStock > 0 ? `Stock: ${colorStock}` : 'Agotado'}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {!isDisabled && (
+                          <div className="flex items-center space-x-2">
+                            <button
+                              type="button"
+                              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:text-gray-900 hover:border-gray-400 disabled:opacity-50"
+                              onClick={() => {
+                                const newQuantity = Math.max(0, currentQuantity - 1);
+                                setColorQuantities(prev => ({
+                                  ...prev,
+                                  [color]: newQuantity
+                                }));
+                              }}
+                              disabled={currentQuantity <= 0}
+                            >
+                              -
+                            </button>
+                            
+                            <div className={`w-16 h-8 rounded-md flex items-center justify-center text-sm font-medium ${
+                              currentQuantity > 0 
+                                ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' 
+                                : 'bg-gray-100 text-gray-500 border border-gray-200'
+                            }`}>
+                              {currentQuantity}
+                            </div>
+                            
+                            <button
+                              type="button"
+                              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:text-gray-900 hover:border-gray-400 disabled:opacity-50"
+                              onClick={() => {
+                                const newQuantity = Math.min(colorStock, currentQuantity + 1);
+                                setColorQuantities(prev => ({
+                                  ...prev,
+                                  [color]: newQuantity
+                                }));
+                              }}
+                              disabled={currentQuantity >= colorStock}
+                            >
+                              +
+                            </button>
+                          </div>
                         )}
-                        {color} {colorStock > 0 ? `(${colorStock})` : '(Agotado)'}
-                      </button>
+                      </div>
                     );
                   })}
+                </div>
+                
+                {/* Total summary */}
+                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-gray-700">Total de unidades:</span>
+                    <span className="text-lg font-bold text-indigo-600">
+                      {Object.values(colorQuantities).reduce((sum, qty) => sum + qty, 0)}
+                    </span>
+                  </div>
                 </div>
               </div>
             )}
@@ -618,42 +679,42 @@ export default function ProductDetail() {
             </div>
 
             <div className="mt-10 flex flex-col space-y-4">
-              <div className="flex items-center">
-                <label htmlFor="quantity" className="mr-3 text-sm font-medium text-gray-700">
-                  Cantidad:
-                </label>
-                <div className="flex items-center border border-gray-300 rounded-md">
-                  <button
-                    type="button"
-                    className="px-3 py-1 text-gray-600 hover:text-gray-900 focus:outline-none"
-                    onClick={() => handleQuantityChange(getCurrentQuantity() - 1)}
-                  >
-                    -
-                  </button>
-                  <input
-                    type="number"
-                    id="quantity"
-                    name="quantity"
-                    min="0"
-                    max={product.show_colors && selectedColor ? getColorStock(selectedColor) : product.stock}
-                    value={getCurrentQuantity()}
-                    onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 0)}
-                    className="w-12 text-center border-0 focus:ring-0"
-                  />
-                  <button
-                    type="button"
-                    className="px-3 py-1 text-gray-600 hover:text-gray-900 focus:outline-none"
-                    onClick={() => {
-                      const maxStock = product.show_colors && selectedColor 
-                        ? getColorStock(selectedColor) 
-                        : product.stock;
-                      handleQuantityChange(Math.min(maxStock, getCurrentQuantity() + 1));
-                    }}
-                  >
-                    +
-                  </button>
+              {/* Solo mostrar selector de cantidad si NO hay colores */}
+              {!product.show_colors && (
+                <div className="flex items-center">
+                  <label htmlFor="quantity" className="mr-3 text-sm font-medium text-gray-700">
+                    Cantidad:
+                  </label>
+                  <div className="flex items-center border border-gray-300 rounded-md">
+                    <button
+                      type="button"
+                      className="px-3 py-1 text-gray-600 hover:text-gray-900 focus:outline-none"
+                      onClick={() => handleQuantityChange(getCurrentQuantity() - 1)}
+                    >
+                      -
+                    </button>
+                    <input
+                      type="number"
+                      id="quantity"
+                      name="quantity"
+                      min="0"
+                      max={product.stock}
+                      value={getCurrentQuantity()}
+                      onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 0)}
+                      className="w-12 text-center border-0 focus:ring-0"
+                    />
+                    <button
+                      type="button"
+                      className="px-3 py-1 text-gray-600 hover:text-gray-900 focus:outline-none"
+                      onClick={() => {
+                        handleQuantityChange(Math.min(product.stock, getCurrentQuantity() + 1));
+                      }}
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
               
               <div className="flex sm:flex-row gap-4">
                 <button
