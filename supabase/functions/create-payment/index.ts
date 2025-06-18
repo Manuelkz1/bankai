@@ -17,10 +17,12 @@ serve(async (req) => {
   }
 
   try {
-    console.log('Processing payment creation request');
+    const functionVersion = '2025-06-19-02:35:00'; // Forzar actualización
+    console.log(`🚀 FUNCIÓN ACTUALIZADA ${functionVersion} - Processing payment creation request`);
     
     const { orderId, items, total } = await req.json();
     console.log('Request data:', { orderId, itemsCount: items?.length, total });
+    console.log('🔧 CORRECCIÓN ACTIVA: Usando precios promocionales directamente');
 
     if (!orderId || !items || !Array.isArray(items) || items.length === 0 || !total) {
       console.error('Invalid request data');
@@ -89,13 +91,17 @@ serve(async (req) => {
 
     // Construct preference data
     const preferenceData = {
-      items: items.map(item => ({
-        title: item.product.name,
-        quantity: item.quantity,
-        currency_id: "COP",
-        unit_price: Number(item.product.price), // Usar el precio efectivo enviado desde checkout (ya incluye promociones)
-        description: `Orden #${orderId}`,
-      })),
+      items: items.map(item => {
+        const finalPrice = Number(item.product.price);
+        console.log(`💰 PRECIO FINAL PARA MERCADOPAGO: ${item.product.name} = $${finalPrice} (promocional)`);
+        return {
+          title: item.product.name,
+          quantity: item.quantity,
+          currency_id: "COP",
+          unit_price: finalPrice, // Usar el precio efectivo enviado desde checkout (ya incluye promociones)
+          description: `Orden #${orderId}`,
+        };
+      }),
       payer: {
         first_name: firstName,
         last_name: lastName,
