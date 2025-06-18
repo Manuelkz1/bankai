@@ -529,120 +529,256 @@ export default function ProductDetail() {
               </div>
             </div>
 
-            {/* Color selection with individual quantities */}
+            {/* Color selection with individual quantities - MODERN DESIGN */}
             {product.show_colors && product.available_colors && product.available_colors.length > 0 && (
-              <div className="mt-6">
-                <h3 className="text-sm font-medium text-gray-900">Selecciona colores y cantidades</h3>
-                <div className="mt-4 space-y-3">
-                  {product.available_colors.map((color) => {
+              <div className="mt-8">
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Selecciona colores y cantidades</h3>
+                  <p className="text-sm text-gray-600">Elige el color y cantidad que deseas de cada variante</p>
+                </div>
+                
+                <div className="grid gap-4">
+                  {product.available_colors.map((color, index) => {
                     const colorStock = getColorStock(color);
                     const isDisabled = colorStock <= 0;
                     const currentQuantity = colorQuantities[color] || 0;
+                    const isSelected = currentQuantity > 0;
                     
                     return (
-                      <div key={color} className="flex items-center justify-between border border-gray-200 rounded-lg p-3">
-                        <div className="flex items-center space-x-3">
-                          <div 
-                            className={`w-6 h-6 rounded-full border-2 ${
-                              isDisabled 
-                                ? 'bg-gray-100 border-gray-300' 
-                                : 'border-gray-400'
-                            }`}
-                            style={{
-                              backgroundColor: isDisabled ? '#f3f4f6' : color.toLowerCase()
-                            }}
-                          />
-                          <div>
-                            <span className={`font-medium ${isDisabled ? 'text-gray-400' : 'text-gray-900'}`}>
-                              {color}
-                            </span>
-                            <div className="text-sm text-gray-500">
-                              {colorStock > 0 ? `Stock: ${colorStock}` : 'Agotado'}
+                      <div 
+                        key={color} 
+                        className={`group relative overflow-hidden rounded-xl border-2 transition-all duration-300 ${
+                          isDisabled 
+                            ? 'border-gray-200 bg-gray-50 opacity-60' 
+                            : isSelected
+                              ? 'border-indigo-400 bg-gradient-to-r from-indigo-50 to-purple-50 shadow-lg shadow-indigo-200/50'
+                              : 'border-gray-200 bg-white hover:border-indigo-300 hover:shadow-md hover:shadow-indigo-100/50'
+                        }`}
+                        style={{
+                          animationDelay: `${index * 100}ms`
+                        }}
+                      >
+                        {/* Animated background gradient for selected items */}
+                        {isSelected && (
+                          <div className="absolute inset-0 bg-gradient-to-r from-indigo-100/20 to-purple-100/20 animate-pulse" />
+                        )}
+                        
+                        <div className="relative p-4">
+                          <div className="flex items-center justify-between">
+                            {/* Color info section */}
+                            <div className="flex items-center space-x-4">
+                              {/* Enhanced color circle with shadow and animation */}
+                              <div className="relative">
+                                <div 
+                                  className={`w-12 h-12 rounded-full border-3 shadow-lg transition-all duration-300 ${
+                                    isDisabled 
+                                      ? 'border-gray-300 opacity-50' 
+                                      : isSelected
+                                        ? 'border-white ring-4 ring-indigo-200 scale-110'
+                                        : 'border-gray-300 group-hover:border-white group-hover:ring-2 group-hover:ring-indigo-200'
+                                  }`}
+                                  style={{
+                                    backgroundColor: isDisabled ? '#e5e7eb' : color.toLowerCase(),
+                                    boxShadow: isSelected 
+                                      ? `0 8px 25px -8px ${color.toLowerCase()}40` 
+                                      : '0 4px 15px -5px rgba(0,0,0,0.1)'
+                                  }}
+                                />
+                                {isSelected && (
+                                  <div className="absolute inset-0 rounded-full bg-white/20 animate-ping" />
+                                )}
+                              </div>
+                              
+                              <div className="flex-1">
+                                <h4 className={`text-lg font-semibold capitalize transition-colors duration-200 ${
+                                  isDisabled ? 'text-gray-400' : isSelected ? 'text-indigo-900' : 'text-gray-900'
+                                }`}>
+                                  {color}
+                                </h4>
+                                <div className="flex items-center space-x-2 mt-1">
+                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                    colorStock > 10 
+                                      ? 'bg-green-100 text-green-800' 
+                                      : colorStock > 0 
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : 'bg-red-100 text-red-800'
+                                  }`}>
+                                    {colorStock > 0 ? `${colorStock} disponibles` : 'Agotado'}
+                                  </span>
+                                  {isSelected && (
+                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
+                                      ✓ Seleccionado
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
                             </div>
+                            
+                            {/* Quantity controls section */}
+                            {!isDisabled && (
+                              <div className="flex items-center space-x-3">
+                                <button
+                                  type="button"
+                                  className={`group/btn relative w-10 h-10 rounded-xl transition-all duration-200 ${
+                                    currentQuantity <= 0
+                                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                      : 'bg-red-500 hover:bg-red-600 text-white shadow-lg hover:shadow-red-200 hover:scale-105 active:scale-95'
+                                  }`}
+                                  onClick={() => {
+                                    const newQuantity = Math.max(0, currentQuantity - 1);
+                                    setColorQuantities(prev => ({
+                                      ...prev,
+                                      [color]: newQuantity
+                                    }));
+                                  }}
+                                  disabled={currentQuantity <= 0}
+                                >
+                                  <span className="text-lg font-bold">−</span>
+                                  {currentQuantity > 0 && (
+                                    <div className="absolute inset-0 rounded-xl bg-white/20 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-200" />
+                                  )}
+                                </button>
+                                
+                                <div className={`relative min-w-[3rem] h-10 rounded-xl flex items-center justify-center text-lg font-bold transition-all duration-300 ${
+                                  currentQuantity > 0 
+                                    ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-200'
+                                    : 'bg-gray-100 text-gray-500 border-2 border-dashed border-gray-300'
+                                }`}>
+                                  {currentQuantity > 0 && (
+                                    <div className="absolute inset-0 rounded-xl bg-white/10 animate-pulse" />
+                                  )}
+                                  <span className="relative z-10">{currentQuantity}</span>
+                                </div>
+                                
+                                <button
+                                  type="button"
+                                  className={`group/btn relative w-10 h-10 rounded-xl transition-all duration-200 ${
+                                    currentQuantity >= colorStock
+                                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                      : 'bg-green-500 hover:bg-green-600 text-white shadow-lg hover:shadow-green-200 hover:scale-105 active:scale-95'
+                                  }`}
+                                  onClick={() => {
+                                    const newQuantity = Math.min(colorStock, currentQuantity + 1);
+                                    setColorQuantities(prev => ({
+                                      ...prev,
+                                      [color]: newQuantity
+                                    }));
+                                  }}
+                                  disabled={currentQuantity >= colorStock}
+                                >
+                                  <span className="text-lg font-bold">+</span>
+                                  {currentQuantity < colorStock && (
+                                    <div className="absolute inset-0 rounded-xl bg-white/20 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-200" />
+                                  )}
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
-                        
-                        {!isDisabled && (
-                          <div className="flex items-center space-x-2">
-                            <button
-                              type="button"
-                              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:text-gray-900 hover:border-gray-400 disabled:opacity-50"
-                              onClick={() => {
-                                const newQuantity = Math.max(0, currentQuantity - 1);
-                                setColorQuantities(prev => ({
-                                  ...prev,
-                                  [color]: newQuantity
-                                }));
-                              }}
-                              disabled={currentQuantity <= 0}
-                            >
-                              -
-                            </button>
-                            
-                            <div className={`w-16 h-8 rounded-md flex items-center justify-center text-sm font-medium ${
-                              currentQuantity > 0 
-                                ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' 
-                                : 'bg-gray-100 text-gray-500 border border-gray-200'
-                            }`}>
-                              {currentQuantity}
-                            </div>
-                            
-                            <button
-                              type="button"
-                              className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center text-gray-600 hover:text-gray-900 hover:border-gray-400 disabled:opacity-50"
-                              onClick={() => {
-                                const newQuantity = Math.min(colorStock, currentQuantity + 1);
-                                setColorQuantities(prev => ({
-                                  ...prev,
-                                  [color]: newQuantity
-                                }));
-                              }}
-                              disabled={currentQuantity >= colorStock}
-                            >
-                              +
-                            </button>
-                          </div>
-                        )}
                       </div>
                     );
                   })}
                 </div>
                 
-                {/* Total summary */}
-                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-700">Total de unidades:</span>
-                    <span className="text-lg font-bold text-indigo-600">
-                      {Object.values(colorQuantities).reduce((sum, qty) => sum + qty, 0)}
-                    </span>
+                {/* Enhanced total summary */}
+                <div className="mt-6 p-5 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-200">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
+                        <span className="text-white font-bold text-lg">∑</span>
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-900">Total de unidades</h4>
+                        <p className="text-sm text-gray-600">Resumen de tu selección</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                        {Object.values(colorQuantities).reduce((sum, qty) => sum + qty, 0)}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {Object.values(colorQuantities).reduce((sum, qty) => sum + qty, 0) === 1 ? 'unidad' : 'unidades'}
+                      </div>
+                    </div>
                   </div>
+                  
+                  {/* Selected colors summary */}
+                  {Object.entries(colorQuantities).some(([_, qty]) => qty > 0) && (
+                    <div className="mt-4 pt-4 border-t border-indigo-200">
+                      <div className="flex flex-wrap gap-2">
+                        {Object.entries(colorQuantities).map(([colorName, qty]) => {
+                          if (qty <= 0) return null;
+                          return (
+                            <div key={colorName} className="inline-flex items-center space-x-2 px-3 py-1.5 bg-white rounded-full border border-indigo-200 shadow-sm">
+                              <div 
+                                className="w-4 h-4 rounded-full border border-gray-300"
+                                style={{ backgroundColor: colorName.toLowerCase() }}
+                              />
+                              <span className="text-sm font-medium text-gray-700 capitalize">{colorName}</span>
+                              <span className="text-sm font-bold text-indigo-600">×{qty}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Size selection */}
+            {/* Size selection - MODERN DESIGN */}
             {product.show_sizes && product.available_sizes && product.available_sizes.length > 0 && (
-              <div className="mt-6">
-                <h3 className="text-sm font-medium text-gray-900">Tallas disponibles</h3>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {product.available_sizes.map((size) => (
+              <div className="mt-8">
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Selecciona tu talla</h3>
+                  <p className="text-sm text-gray-600">Elige la talla que mejor se ajuste a ti</p>
+                </div>
+                
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                  {product.available_sizes.map((size, index) => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
-                      className={`relative px-3 py-1 rounded-full text-sm ${
+                      className={`group relative overflow-hidden px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 transform ${
                         selectedSize === size
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-200 scale-105 ring-4 ring-indigo-200'
+                          : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 hover:scale-105 hover:shadow-md'
                       }`}
+                      style={{
+                        animationDelay: `${index * 50}ms`
+                      }}
                     >
+                      {/* Background animation for selected state */}
                       {selectedSize === size && (
-                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                          <Check className="h-3 w-3 text-white" />
-                        </span>
+                        <div className="absolute inset-0 bg-white/20 animate-pulse rounded-xl" />
                       )}
-                      {size}
+                      
+                      {/* Size text */}
+                      <span className="relative z-10 uppercase tracking-wide">{size}</span>
+                      
+                      {/* Check icon for selected size */}
+                      {selectedSize === size && (
+                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-md">
+                          <Check className="h-3 w-3 text-indigo-600" />
+                        </div>
+                      )}
+                      
+                      {/* Hover effect ring */}
+                      <div className={`absolute inset-0 rounded-xl transition-all duration-300 ${
+                        selectedSize === size 
+                          ? 'ring-4 ring-indigo-200' 
+                          : 'ring-0 group-hover:ring-2 group-hover:ring-indigo-200'
+                      }`} />
                     </button>
                   ))}
+                </div>
+                
+                {/* Size guide hint */}
+                <div className="mt-4 flex items-center justify-center">
+                  <div className="inline-flex items-center px-3 py-1.5 bg-gray-100 rounded-full text-xs text-gray-600">
+                    <span className="mr-1">💡</span>
+                    ¿No estás seguro de tu talla? Consulta nuestra guía de tallas
+                  </div>
                 </div>
               </div>
             )}
@@ -671,48 +807,118 @@ export default function ProductDetail() {
             )}
 
             <div className="mt-6">
-              <div className="flex items-center">
-                <div className="text-sm text-gray-700">
-                  Stock disponible: {product.stock}
-                </div>
+              <div className="inline-flex items-center px-4 py-2 bg-gray-50 rounded-xl border border-gray-200">
+                <div className={`w-3 h-3 rounded-full mr-3 ${
+                  product.stock > 10 
+                    ? 'bg-green-500 animate-pulse' 
+                    : product.stock > 0 
+                      ? 'bg-yellow-500'
+                      : 'bg-red-500'
+                }`} />
+                <span className="text-sm font-medium text-gray-700">
+                  Stock disponible: 
+                  <span className={`ml-1 font-bold ${
+                    product.stock > 10 
+                      ? 'text-green-600' 
+                      : product.stock > 0 
+                        ? 'text-yellow-600'
+                        : 'text-red-600'
+                  }`}>
+                    {product.stock} unidades
+                  </span>
+                </span>
               </div>
             </div>
 
             <div className="mt-10 flex flex-col space-y-4">
-              {/* Solo mostrar selector de cantidad si NO hay colores */}
+              {/* Solo mostrar selector de cantidad si NO hay colores - MODERN DESIGN */}
               {!product.show_colors && (
-                <div className="flex items-center">
-                  <label htmlFor="quantity" className="mr-3 text-sm font-medium text-gray-700">
-                    Cantidad:
-                  </label>
-                  <div className="flex items-center border border-gray-300 rounded-md">
+                <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-200">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Selecciona la cantidad</h3>
+                    <p className="text-sm text-gray-600">¿Cuántas unidades deseas agregar?</p>
+                  </div>
+                  
+                  <div className="flex items-center justify-center space-x-4">
                     <button
                       type="button"
-                      className="px-3 py-1 text-gray-600 hover:text-gray-900 focus:outline-none"
+                      className={`group relative w-12 h-12 rounded-xl transition-all duration-200 ${
+                        getCurrentQuantity() <= 0
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-red-500 hover:bg-red-600 text-white shadow-lg hover:shadow-red-200 hover:scale-105 active:scale-95'
+                      }`}
                       onClick={() => handleQuantityChange(getCurrentQuantity() - 1)}
+                      disabled={getCurrentQuantity() <= 0}
                     >
-                      -
+                      <span className="text-xl font-bold">−</span>
+                      {getCurrentQuantity() > 0 && (
+                        <div className="absolute inset-0 rounded-xl bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                      )}
                     </button>
-                    <input
-                      type="number"
-                      id="quantity"
-                      name="quantity"
-                      min="0"
-                      max={product.stock}
-                      value={getCurrentQuantity()}
-                      onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 0)}
-                      className="w-12 text-center border-0 focus:ring-0"
-                    />
+                    
+                    <div className="relative">
+                      <input
+                        type="number"
+                        id="quantity"
+                        name="quantity"
+                        min="0"
+                        max={product.stock}
+                        value={getCurrentQuantity()}
+                        onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 0)}
+                        className={`w-20 h-12 text-center text-xl font-bold rounded-xl border-0 focus:ring-4 transition-all duration-300 ${
+                          getCurrentQuantity() > 0 
+                            ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg focus:ring-indigo-200' 
+                            : 'bg-gray-100 text-gray-500 border-2 border-dashed border-gray-300 focus:ring-gray-200'
+                        }`}
+                      />
+                      {getCurrentQuantity() > 0 && (
+                        <div className="absolute inset-0 rounded-xl bg-white/10 animate-pulse pointer-events-none" />
+                      )}
+                    </div>
+                    
                     <button
                       type="button"
-                      className="px-3 py-1 text-gray-600 hover:text-gray-900 focus:outline-none"
+                      className={`group relative w-12 h-12 rounded-xl transition-all duration-200 ${
+                        getCurrentQuantity() >= product.stock
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          : 'bg-green-500 hover:bg-green-600 text-white shadow-lg hover:shadow-green-200 hover:scale-105 active:scale-95'
+                      }`}
                       onClick={() => {
                         handleQuantityChange(Math.min(product.stock, getCurrentQuantity() + 1));
                       }}
+                      disabled={getCurrentQuantity() >= product.stock}
                     >
-                      +
+                      <span className="text-xl font-bold">+</span>
+                      {getCurrentQuantity() < product.stock && (
+                        <div className="absolute inset-0 rounded-xl bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                      )}
                     </button>
                   </div>
+                  
+                  {/* Stock indicator */}
+                  <div className="mt-4 text-center">
+                    <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${
+                      product.stock > 10 
+                        ? 'bg-green-100 text-green-800' 
+                        : product.stock > 0 
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : 'bg-red-100 text-red-800'
+                    }`}>
+                      {product.stock} unidades disponibles
+                    </span>
+                  </div>
+                  
+                  {/* Quantity summary */}
+                  {getCurrentQuantity() > 0 && (
+                    <div className="mt-4 p-3 bg-white rounded-xl border border-indigo-200">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-700">Has seleccionado:</span>
+                        <span className="text-lg font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                          {getCurrentQuantity()} {getCurrentQuantity() === 1 ? 'unidad' : 'unidades'}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               
