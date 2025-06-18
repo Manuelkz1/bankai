@@ -616,10 +616,10 @@ export default function ProductDetail() {
                             
                             {/* Quantity controls section */}
                             {!isDisabled && (
-                              <div className="flex items-center space-x-3">
+                              <div className="flex items-center space-x-4 sm:space-x-3">
                                 <button
                                   type="button"
-                                  className={`group/btn relative w-10 h-10 rounded-xl transition-all duration-200 ${
+                                  className={`group/btn relative w-12 h-12 sm:w-10 sm:h-10 rounded-xl transition-all duration-200 touch-manipulation ${
                                     currentQuantity <= 0
                                       ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                       : 'bg-red-500 hover:bg-red-600 text-white shadow-lg hover:shadow-red-200 hover:scale-105 active:scale-95'
@@ -639,7 +639,7 @@ export default function ProductDetail() {
                                   )}
                                 </button>
                                 
-                                <div className={`relative min-w-[3rem] h-10 rounded-xl flex items-center justify-center text-lg font-bold transition-all duration-300 ${
+                                <div className={`relative min-w-[3rem] h-12 sm:h-10 rounded-xl flex items-center justify-center text-lg font-bold transition-all duration-300 ${
                                   currentQuantity > 0 
                                     ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-200'
                                     : 'bg-gray-100 text-gray-500 border-2 border-dashed border-gray-300'
@@ -652,7 +652,7 @@ export default function ProductDetail() {
                                 
                                 <button
                                   type="button"
-                                  className={`group/btn relative w-10 h-10 rounded-xl transition-all duration-200 ${
+                                  className={`group/btn relative w-12 h-12 sm:w-10 sm:h-10 rounded-xl transition-all duration-200 touch-manipulation ${
                                     currentQuantity >= colorStock
                                       ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                       : 'bg-green-500 hover:bg-green-600 text-white shadow-lg hover:shadow-green-200 hover:scale-105 active:scale-95'
@@ -839,10 +839,10 @@ export default function ProductDetail() {
                     <p className="text-sm text-gray-600">¿Cuántas unidades deseas agregar?</p>
                   </div>
                   
-                  <div className="flex items-center justify-center space-x-4">
+                  <div className="flex items-center justify-center space-x-5 sm:space-x-4">
                     <button
                       type="button"
-                      className={`group relative w-12 h-12 rounded-xl transition-all duration-200 ${
+                      className={`group relative w-14 h-14 sm:w-12 sm:h-12 rounded-xl transition-all duration-200 touch-manipulation ${
                         getCurrentQuantity() <= 0
                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                           : 'bg-red-500 hover:bg-red-600 text-white shadow-lg hover:shadow-red-200 hover:scale-105 active:scale-95'
@@ -865,7 +865,7 @@ export default function ProductDetail() {
                         max={product.stock}
                         value={getCurrentQuantity()}
                         onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 0)}
-                        className={`w-20 h-12 text-center text-xl font-bold rounded-xl border-0 focus:ring-4 transition-all duration-300 ${
+                        className={`w-24 h-14 sm:w-20 sm:h-12 text-center text-xl font-bold rounded-xl border-0 focus:ring-4 transition-all duration-300 touch-manipulation ${
                           getCurrentQuantity() > 0 
                             ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg focus:ring-indigo-200' 
                             : 'bg-gray-100 text-gray-500 border-2 border-dashed border-gray-300 focus:ring-gray-200'
@@ -878,7 +878,7 @@ export default function ProductDetail() {
                     
                     <button
                       type="button"
-                      className={`group relative w-12 h-12 rounded-xl transition-all duration-200 ${
+                      className={`group relative w-14 h-14 sm:w-12 sm:h-12 rounded-xl transition-all duration-200 touch-manipulation ${
                         getCurrentQuantity() >= product.stock
                           ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                           : 'bg-green-500 hover:bg-green-600 text-white shadow-lg hover:shadow-green-200 hover:scale-105 active:scale-95'
