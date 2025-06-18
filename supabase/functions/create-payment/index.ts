@@ -83,7 +83,7 @@ serve(async (req) => {
         title: item.product.name,
         quantity: item.quantity,
         currency_id: "COP",
-        unit_price: Number(item.product.price), // Usar el precio efectivo (con promoción aplicada)
+        unit_price: Number(item.price || item.product.price), // Usar el precio efectivo (con promoción aplicada)
         description: `Orden #${orderId}`,
       })),
       payer: {
