@@ -529,192 +529,140 @@ export default function ProductDetail() {
               </div>
             </div>
 
-            {/* Color selection with individual quantities - MODERN DESIGN */}
+            {/* Color selection - MOBILE-OPTIMIZED COMPACT DESIGN */}
             {product.show_colors && product.available_colors && product.available_colors.length > 0 && (
-              <div className="mt-8">
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Selecciona colores y cantidades</h3>
-                  <p className="text-sm text-gray-600">Elige el color y cantidad que deseas de cada variante</p>
+              <div className="mt-6">
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Colores disponibles</h3>
+                  <p className="text-sm text-gray-600">Toca un color para ver la imagen y seleccionar cantidad</p>
                 </div>
                 
-                <div className="grid gap-4">
+                <div className="space-y-3">
                   {product.available_colors.map((color, index) => {
                     const colorStock = getColorStock(color);
                     const isDisabled = colorStock <= 0;
                     const currentQuantity = colorQuantities[color] || 0;
                     const isSelected = currentQuantity > 0;
                     
+                    // Buscar imagen específica para este color
+                    const colorImage = product.color_images?.find(ci => ci.color === color);
+                    
                     return (
                       <div 
                         key={color} 
-                        className={`group relative overflow-hidden rounded-xl border-2 transition-all duration-300 ${
+                        className={`relative overflow-hidden rounded-lg border-2 transition-all duration-300 cursor-pointer ${
                           isDisabled 
-                            ? 'border-gray-200 bg-gray-50 opacity-60' 
+                            ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed' 
                             : isSelected
-                              ? 'border-indigo-400 bg-gradient-to-r from-indigo-50 to-purple-50 shadow-lg shadow-indigo-200/50'
-                              : 'border-gray-200 bg-white hover:border-indigo-300 hover:shadow-md hover:shadow-indigo-100/50'
+                              ? 'border-indigo-400 bg-indigo-50 shadow-md'
+                              : 'border-gray-200 bg-white hover:border-indigo-300 hover:shadow-sm'
                         }`}
-                        style={{
-                          animationDelay: `${index * 100}ms`
+                        onClick={() => {
+                          if (!isDisabled) {
+                            handleColorChange(color);
+                          }
                         }}
                       >
-                        {/* Animated background gradient for selected items */}
-                        {isSelected && (
-                          <div className="absolute inset-0 bg-gradient-to-r from-indigo-100/20 to-purple-100/20 animate-pulse" />
-                        )}
-                        
-                        <div className="relative p-4">
-                          <div className="flex items-center justify-between">
-                            {/* Color info section */}
-                            <div className="flex items-center space-x-4">
-                              {/* Enhanced color circle with shadow and animation */}
-                              <div className="relative">
-                                <div 
-                                  className={`w-12 h-12 rounded-full border-3 shadow-lg transition-all duration-300 cursor-pointer ${
-                                    isDisabled 
-                                      ? 'border-gray-300 opacity-50 cursor-not-allowed' 
-                                      : isSelected
-                                        ? 'border-white ring-4 ring-indigo-200 scale-110'
-                                        : 'border-gray-300 group-hover:border-white group-hover:ring-2 group-hover:ring-indigo-200'
-                                  }`}
-                                  style={{
-                                    backgroundColor: isDisabled ? '#e5e7eb' : color.toLowerCase(),
-                                    boxShadow: isSelected 
-                                      ? `0 8px 25px -8px ${color.toLowerCase()}40` 
-                                      : '0 4px 15px -5px rgba(0,0,0,0.1)'
-                                  }}
-                                  onClick={() => {
-                                    if (!isDisabled) {
-                                      handleColorChange(color);
-                                    }
-                                  }}
-                                />
-                                {isSelected && (
-                                  <div className="absolute inset-0 rounded-full bg-white/20 animate-ping" />
-                                )}
+                        <div className="flex items-center p-3">
+                          {/* Miniatura de imagen */}
+                          <div className="w-12 h-12 rounded-lg overflow-hidden mr-3 flex-shrink-0 border border-gray-200">
+                            {colorImage?.image ? (
+                              <img 
+                                src={colorImage.image} 
+                                alt={`${product.name} - ${color}`}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div 
+                                className="w-full h-full flex items-center justify-center"
+                                style={{ backgroundColor: color.toLowerCase() }}
+                              >
+                                <span className="text-white text-xs font-medium">
+                                  {color[0].toUpperCase()}
+                                </span>
                               </div>
-                              
+                            )}
+                          </div>
+                          
+                          {/* Información del color */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
                               <div className="flex-1">
-                                <h4 className={`text-lg font-semibold capitalize transition-colors duration-200 ${
+                                <h4 className={`font-medium capitalize ${
                                   isDisabled ? 'text-gray-400' : isSelected ? 'text-indigo-900' : 'text-gray-900'
                                 }`}>
                                   {color}
                                 </h4>
                                 <div className="flex items-center space-x-2 mt-1">
-                                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                                     colorStock > 10 
-                                      ? 'bg-green-100 text-green-800' 
+                                      ? 'bg-green-100 text-green-700' 
                                       : colorStock > 0 
-                                        ? 'bg-yellow-100 text-yellow-800'
-                                        : 'bg-red-100 text-red-800'
+                                        ? 'bg-yellow-100 text-yellow-700'
+                                        : 'bg-red-100 text-red-700'
                                   }`}>
                                     {colorStock > 0 ? `${colorStock} disponibles` : 'Agotado'}
                                   </span>
                                   {isSelected && (
-                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                      ✓ Seleccionado
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-700">
+                                      ✓ {currentQuantity} seleccionada{currentQuantity > 1 ? 's' : ''}
                                     </span>
                                   )}
                                 </div>
                               </div>
-                            </div>
-                            
-                            {/* MOBILE-FIRST Quantity controls - Ultra simplified */}
-                            <div className="w-full flex items-center justify-center gap-4 py-3">
-                              {/* Minus button - Always rendered */}
-                              <button
-                                type="button"
-                                style={{
-                                  width: '48px',
-                                  height: '48px',
-                                  backgroundColor: currentQuantity <= 0 ? '#f3f4f6' : '#ef4444',
-                                  color: currentQuantity <= 0 ? '#9ca3af' : '#ffffff',
-                                  border: 'none',
-                                  borderRadius: '12px',
-                                  fontSize: '20px',
-                                  fontWeight: 'bold',
-                                  cursor: currentQuantity <= 0 ? 'not-allowed' : 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  touchAction: 'manipulation',
-                                  userSelect: 'none',
-                                  WebkitUserSelect: 'none',
-                                  position: 'relative',
-                                  zIndex: 10
-                                }}
-                                onClick={() => {
-                                  if (currentQuantity > 0) {
-                                    const newQuantity = Math.max(0, currentQuantity - 1);
-                                    setColorQuantities(prev => ({
-                                      ...prev,
-                                      [color]: newQuantity
-                                    }));
-                                  }
-                                }}
-                                disabled={currentQuantity <= 0}
-                              >
-                                −
-                              </button>
                               
-                              {/* Quantity display */}
-                              <div
-                                style={{
-                                  width: '60px',
-                                  height: '48px',
-                                  backgroundColor: currentQuantity > 0 ? '#6366f1' : '#f3f4f6',
-                                  color: currentQuantity > 0 ? '#ffffff' : '#6b7280',
-                                  border: currentQuantity > 0 ? 'none' : '2px dashed #d1d5db',
-                                  borderRadius: '12px',
-                                  fontSize: '18px',
-                                  fontWeight: 'bold',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  userSelect: 'none',
-                                  WebkitUserSelect: 'none'
-                                }}
-                              >
-                                {currentQuantity}
+                              {/* Controles de cantidad compactos */}
+                              <div className="flex items-center space-x-2">
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (currentQuantity > 0) {
+                                      const newQuantity = Math.max(0, currentQuantity - 1);
+                                      setColorQuantities(prev => ({
+                                        ...prev,
+                                        [color]: newQuantity
+                                      }));
+                                    }
+                                  }}
+                                  disabled={currentQuantity <= 0}
+                                  className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
+                                    currentQuantity <= 0 
+                                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                                      : 'bg-red-500 text-white hover:bg-red-600'
+                                  }`}
+                                >
+                                  −
+                                </button>
+                                
+                                <div className={`w-10 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
+                                  currentQuantity > 0 ? 'bg-indigo-500 text-white' : 'bg-gray-100 text-gray-500 border border-dashed border-gray-300'
+                                }`}>
+                                  {currentQuantity}
+                                </div>
+                                
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (currentQuantity < colorStock) {
+                                      const newQuantity = Math.min(colorStock, currentQuantity + 1);
+                                      setColorQuantities(prev => ({
+                                        ...prev,
+                                        [color]: newQuantity
+                                      }));
+                                    }
+                                  }}
+                                  disabled={currentQuantity >= colorStock}
+                                  className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
+                                    currentQuantity >= colorStock 
+                                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                                      : 'bg-green-500 text-white hover:bg-green-600'
+                                  }`}
+                                >
+                                  +
+                                </button>
                               </div>
-                              
-                              {/* Plus button - ALWAYS VISIBLE - Never hidden */}
-                              <button
-                                type="button"
-                                style={{
-                                  width: '48px',
-                                  height: '48px',
-                                  backgroundColor: currentQuantity >= colorStock ? '#f3f4f6' : '#10b981',
-                                  color: currentQuantity >= colorStock ? '#9ca3af' : '#ffffff',
-                                  border: 'none',
-                                  borderRadius: '12px',
-                                  fontSize: '20px',
-                                  fontWeight: 'bold',
-                                  cursor: currentQuantity >= colorStock ? 'not-allowed' : 'pointer',
-                                  display: 'flex !important',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  touchAction: 'manipulation',
-                                  userSelect: 'none',
-                                  WebkitUserSelect: 'none',
-                                  position: 'relative',
-                                  zIndex: 10,
-                                  visibility: 'visible !important',
-                                  opacity: '1 !important'
-                                }}
-                                onClick={() => {
-                                  if (currentQuantity < colorStock) {
-                                    const newQuantity = Math.min(colorStock, currentQuantity + 1);
-                                    setColorQuantities(prev => ({
-                                      ...prev,
-                                      [color]: newQuantity
-                                    }));
-                                  }
-                                }}
-                                disabled={currentQuantity >= colorStock}
-                              >
-                                +
-                              </button>
                             </div>
                           </div>
                         </div>
@@ -723,122 +671,32 @@ export default function ProductDetail() {
                   })}
                 </div>
                 
-                {/* Enhanced total summary */}
-                <div className="mt-6 p-5 bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-200">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
-                        <span className="text-white font-bold text-lg">∑</span>
-                      </div>
-                      <div>
-                        <h4 className="text-lg font-semibold text-gray-900">Total de unidades</h4>
-                        <p className="text-sm text-gray-600">Resumen de tu selección</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                        {Object.values(colorQuantities).reduce((sum, qty) => sum + qty, 0)}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {Object.values(colorQuantities).reduce((sum, qty) => sum + qty, 0) === 1 ? 'unidad' : 'unidades'}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Selected colors summary */}
-                  {Object.entries(colorQuantities).some(([_, qty]) => qty > 0) && (
-                    <div className="mt-4 pt-4 border-t border-indigo-200">
-                      <div className="flex flex-wrap gap-2">
-                        {Object.entries(colorQuantities).map(([colorName, qty]) => {
-                          if (qty <= 0) return null;
-                          return (
-                            <div key={colorName} className="inline-flex items-center space-x-2 px-3 py-1.5 bg-white rounded-full border border-indigo-200 shadow-sm">
-                              <div 
-                                className="w-4 h-4 rounded-full border border-gray-300"
-                                style={{ backgroundColor: colorName.toLowerCase() }}
-                              />
-                              <span className="text-sm font-medium text-gray-700 capitalize">{colorName}</span>
-                              <span className="text-sm font-bold text-indigo-600">×{qty}</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Size selection - MODERN DESIGN */}
-            {product.show_sizes && product.available_sizes && product.available_sizes.length > 0 && (
-              <div className="mt-8">
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Selecciona tu talla</h3>
-                  <p className="text-sm text-gray-600">Elige la talla que mejor se ajuste a ti</p>
-                </div>
-                
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                  {product.available_sizes.map((size, index) => (
-                    <button
-                      key={size}
-                      onClick={() => setSelectedSize(size)}
-                      className={`group relative overflow-hidden px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 transform ${
-                        selectedSize === size
-                          ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-200 scale-105 ring-4 ring-indigo-200'
-                          : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 hover:scale-105 hover:shadow-md'
-                      }`}
-                      style={{
-                        animationDelay: `${index * 50}ms`
-                      }}
-                    >
-                      {/* Background animation for selected state */}
-                      {selectedSize === size && (
-                        <div className="absolute inset-0 bg-white/20 animate-pulse rounded-xl" />
-                      )}
-                      
-                      {/* Size text */}
-                      <span className="relative z-10 uppercase tracking-wide">{size}</span>
-                      
-                      {/* Check icon for selected size */}
-                      {selectedSize === size && (
-                        <div className="absolute -top-1 -right-1 w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-md">
-                          <Check className="h-3 w-3 text-indigo-600" />
+                {/* Resumen compacto */}
+                {Object.values(colorQuantities).reduce((sum, qty) => sum + qty, 0) > 0 && (
+                  <div className="mt-4 p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-6 h-6 bg-indigo-500 rounded-lg flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">∑</span>
                         </div>
-                      )}
-                      
-                      {/* Hover effect ring */}
-                      <div className={`absolute inset-0 rounded-xl transition-all duration-300 ${
-                        selectedSize === size 
-                          ? 'ring-4 ring-indigo-200' 
-                          : 'ring-0 group-hover:ring-2 group-hover:ring-indigo-200'
-                      }`} />
-                    </button>
-                  ))}
-                </div>
-                
-                {/* Size guide hint */}
-                <div className="mt-4 flex items-center justify-center">
-                  <div className="inline-flex items-center px-3 py-1.5 bg-gray-100 rounded-full text-xs text-gray-600">
-                    <span className="mr-1">💡</span>
-                    ¿No estás seguro de tu talla? Consulta nuestra guía de tallas
+                        <span className="text-sm font-medium text-gray-900">Total seleccionado</span>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-indigo-600">
+                          {Object.values(colorQuantities).reduce((sum, qty) => sum + qty, 0)}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {Object.values(colorQuantities).reduce((sum, qty) => sum + qty, 0) === 1 ? 'unidad' : 'unidades'}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
 
-            {product.instructions_file && (
-              <div className="mt-6">
-                <a
-                  href={product.instructions_file}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center text-indigo-600 hover:text-indigo-500"
-                >
-                  <FileText className="h-5 w-5 mr-2" />
-                  Ver instrucciones de uso
-                </a>
-              </div>
-            )}
+
+            
 
             {product.show_delivery_time && (product.delivery_time || product.shipping_days) && (
               <div className="mt-6">
