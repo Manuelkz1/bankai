@@ -81,9 +81,9 @@ serve(async (req) => {
     items.forEach((item, index) => {
       console.log(`Item ${index}:`, {
         name: item.product?.name,
-        basePrice: item.product?.price,
-        effectivePrice: item.price,
-        quantity: item.quantity
+        promotionalPrice: item.product?.price, // Este es el precio que usaremos (ya incluye promociones)
+        quantity: item.quantity,
+        totalItemValue: Number(item.product?.price) * item.quantity
       });
     });
 
@@ -93,7 +93,7 @@ serve(async (req) => {
         title: item.product.name,
         quantity: item.quantity,
         currency_id: "COP",
-        unit_price: Number(item.price || item.product.price), // Usar el precio efectivo (con promoción aplicada)
+        unit_price: Number(item.product.price), // Usar el precio efectivo enviado desde checkout (ya incluye promociones)
         description: `Orden #${orderId}`,
       })),
       payer: {
