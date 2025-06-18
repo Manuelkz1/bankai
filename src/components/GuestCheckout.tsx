@@ -157,14 +157,69 @@ export function GuestCheckout() {
         try {
           console.log('Iniciando proceso de pago con Mercado Pago');
 
-          // Preparar items para MercadoPago con precios promocionales
-          const mercadoPagoItems = cartStore.items.map(item => ({
-            product: {
-              name: item.product.name,
-              price: Number(item.effectivePrice) // Usar precio efectivo
-            },
-            quantity: item.quantity
-          }));
+          // Preparar items para MercadoPago con precios promocionales REALES por unidad
+          const calculatePromotionalUnitPrice = () => {
+            // Agrupar items por producto para aplicar promociones correctamente
+            const groupedByProduct = cartStore.items.reduce((groups, item) => {
+              const productId = item.product.id;
+              if (!groups[productId]) {
+                groups[productId] = [];
+              }
+              groups[productId].push(item);
+              return groups;
+            }, {} as Record<string, typeof cartStore.items>);
+
+            const mercadoPagoItems: Array<{product: {name: string, price: number}, quantity: number}> = [];
+
+            // Calcular precio promocional por unidad para cada grupo de productos
+            Object.values(groupedByProduct).forEach(productItems => {
+              const firstItem = productItems[0];
+              const { product } = firstItem;
+              
+              // Sumar todas las cantidades de este producto
+              const totalQuantity = productItems.reduce((sum, item) => sum + item.quantity, 0);
+              const basePrice = product.price;
+              let effectiveUnitPrice = basePrice; // Precio por unidad después de aplicar promoción
+
+              if (product.promotion) {
+                if (product.promotion.type === 'discount') {
+                  effectiveUnitPrice = product.promotion.total_price || basePrice;
+                } else if (product.promotion.type === '2x1' && totalQuantity >= 2) {
+                  // Para 2x1: pagar por la mitad de los items
+                  const paidItems = Math.ceil(totalQuantity / 2);
+                  const totalPromotionalPrice = paidItems * basePrice;
+                  effectiveUnitPrice = totalPromotionalPrice / totalQuantity; // Precio promocional por unidad
+                } else if (product.promotion.type === '3x2' && totalQuantity >= 3) {
+                  const sets = Math.floor(totalQuantity / 3);
+                  const remainder = totalQuantity % 3;
+                  const paidItems = (sets * 2) + remainder;
+                  const totalPromotionalPrice = paidItems * basePrice;
+                  effectiveUnitPrice = totalPromotionalPrice / totalQuantity;
+                } else if (product.promotion.type === '3x1' && totalQuantity >= 3) {
+                  const sets = Math.floor(totalQuantity / 3);
+                  const remainder = totalQuantity % 3;
+                  const paidItems = sets + remainder;
+                  const totalPromotionalPrice = paidItems * basePrice;
+                  effectiveUnitPrice = totalPromotionalPrice / totalQuantity;
+                }
+              }
+
+              // Agregar cada item individual con el precio promocional calculado
+              productItems.forEach(item => {
+                mercadoPagoItems.push({
+                  product: {
+                    name: item.product.name,
+                    price: Number(effectiveUnitPrice.toFixed(0)) // Precio promocional real por unidad
+                  },
+                  quantity: item.quantity
+                });
+              });
+            });
+
+            return mercadoPagoItems;
+          };
+
+          const mercadoPagoItems = calculatePromotionalUnitPrice();
 
           const { data: payment, error: paymentError } = await supabase.functions.invoke('create-payment', {
             body: {
