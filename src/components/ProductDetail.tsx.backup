@@ -570,9 +570,9 @@ export default function ProductDetail() {
                               {/* Enhanced color circle with shadow and animation */}
                               <div className="relative">
                                 <div 
-                                  className={`w-12 h-12 rounded-full border-3 shadow-lg transition-all duration-300 cursor-pointer ${
+                                  className={`w-12 h-12 rounded-full border-3 shadow-lg transition-all duration-300 ${
                                     isDisabled 
-                                      ? 'border-gray-300 opacity-50 cursor-not-allowed' 
+                                      ? 'border-gray-300 opacity-50' 
                                       : isSelected
                                         ? 'border-white ring-4 ring-indigo-200 scale-110'
                                         : 'border-gray-300 group-hover:border-white group-hover:ring-2 group-hover:ring-indigo-200'
@@ -582,11 +582,6 @@ export default function ProductDetail() {
                                     boxShadow: isSelected 
                                       ? `0 8px 25px -8px ${color.toLowerCase()}40` 
                                       : '0 4px 15px -5px rgba(0,0,0,0.1)'
-                                  }}
-                                  onClick={() => {
-                                    if (!isDisabled) {
-                                      handleColorChange(color);
-                                    }
                                   }}
                                 />
                                 {isSelected && (
