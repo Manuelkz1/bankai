@@ -270,42 +270,94 @@ export function GuestCheckout() {
     setStep(step - 1);
   };
 
-  // Función para calcular el total de un item con promociones
-  const getItemTotal = (item: any) => {
-    const { product, quantity, effectivePrice } = item;
+  // Función para calcular promociones agrupando items del mismo producto
+  const getPromotionCalculations = () => {
+    const items = cartStore.items;
     
-    if (product.promotion) {
-      switch (product.promotion.type) {
-        case 'discount':
-          return effectivePrice * quantity;
-        case '2x1':
-          if (quantity >= 2) {
-            const paidItems = Math.ceil(quantity / 2);
-            return paidItems * effectivePrice;
-          }
-          return effectivePrice * quantity;
-        case '3x2':
-          if (quantity >= 3) {
-            const sets = Math.floor(quantity / 3);
-            const remainder = quantity % 3;
-            const paidItems = (sets * 2) + remainder;
-            return paidItems * effectivePrice;
-          }
-          return effectivePrice * quantity;
-        case '3x1':
-          if (quantity >= 3) {
-            const sets = Math.floor(quantity / 3);
-            const remainder = quantity % 3;
-            const paidItems = sets + remainder;
-            return paidItems * effectivePrice;
-          }
-          return effectivePrice * quantity;
-        default:
-          return effectivePrice * quantity;
+    // Agrupar items por producto ID
+    const groupedByProduct = items.reduce((groups, item) => {
+      const productId = item.product.id;
+      if (!groups[productId]) {
+        groups[productId] = [];
       }
+      groups[productId].push(item);
+      return groups;
+    }, {} as Record<string, any[]>);
+
+    // Calcular precios con promociones aplicadas para cada producto
+    const calculations = {} as Record<string, { 
+      totalQuantity: number;
+      totalPromotionalPrice: number;
+      pricePerUnit: number;
+      hasPromotion: boolean;
+    }>;
+
+    Object.entries(groupedByProduct).forEach(([productId, productItems]) => {
+      const firstItem = productItems[0];
+      const { product } = firstItem;
+      
+      // Sumar todas las cantidades de este producto (todas las variantes)
+      const totalQuantity = productItems.reduce((sum, item) => sum + item.quantity, 0);
+      const basePrice = product.price;
+      let totalPromotionalPrice = totalQuantity * basePrice;
+      let hasPromotion = false;
+
+      if (product.promotion) {
+        hasPromotion = true;
+        switch (product.promotion.type) {
+          case 'discount':
+            const promotionPrice = product.promotion.total_price || basePrice;
+            totalPromotionalPrice = promotionPrice * totalQuantity;
+            break;
+          case '2x1':
+            if (totalQuantity >= 2) {
+              const paidItems = Math.ceil(totalQuantity / 2);
+              totalPromotionalPrice = paidItems * basePrice;
+            }
+            break;
+          case '3x2':
+            if (totalQuantity >= 3) {
+              const sets = Math.floor(totalQuantity / 3);
+              const remainder = totalQuantity % 3;
+              const paidItems = (sets * 2) + remainder;
+              totalPromotionalPrice = paidItems * basePrice;
+            }
+            break;
+          case '3x1':
+            if (totalQuantity >= 3) {
+              const sets = Math.floor(totalQuantity / 3);
+              const remainder = totalQuantity % 3;
+              const paidItems = sets + remainder;
+              totalPromotionalPrice = paidItems * basePrice;
+            }
+            break;
+          default:
+            hasPromotion = false;
+            break;
+        }
+      }
+
+      calculations[productId] = {
+        totalQuantity,
+        totalPromotionalPrice,
+        pricePerUnit: totalPromotionalPrice / totalQuantity,
+        hasPromotion
+      };
+    });
+
+    return calculations;
+  };
+
+  // Función para calcular el total de un item basado en promociones grupales
+  const getItemTotal = (item: any) => {
+    const calculations = getPromotionCalculations();
+    const productCalculation = calculations[item.product.id];
+    
+    if (productCalculation) {
+      return productCalculation.pricePerUnit * item.quantity;
     }
     
-    return effectivePrice * quantity;
+    return item.effectivePrice * item.quantity;
   };
 
   return (

@@ -126,35 +126,53 @@ export const useCartStore = create<CartStore>()(
         const items = get().items;
         let total = 0;
 
-        items.forEach(item => {
-          const { product, quantity, effectivePrice } = item;
+        // Agrupar items por producto ID para aplicar promociones correctamente
+        const groupedByProduct = items.reduce((groups, item) => {
+          const productId = item.product.id;
+          if (!groups[productId]) {
+            groups[productId] = [];
+          }
+          groups[productId].push(item);
+          return groups;
+        }, {} as Record<string, CartItem[]>);
+
+        // Calcular total para cada grupo de productos
+        Object.values(groupedByProduct).forEach(productItems => {
+          const firstItem = productItems[0];
+          const { product } = firstItem;
           
+          // Sumar todas las cantidades de este producto (todas las variantes de color/talla)
+          const totalQuantity = productItems.reduce((sum, item) => sum + item.quantity, 0);
+          const basePrice = product.price;
+
           if (product.promotion) {
             if (product.promotion.type === 'discount') {
-              // Para descuentos directos, usar el precio efectivo
-              total += effectivePrice * quantity;
-            } else if (product.promotion.type === '2x1' && quantity >= 2) {
+              // Para descuentos directos, usar el precio promocional
+              const promotionPrice = product.promotion.total_price || basePrice;
+              total += promotionPrice * totalQuantity;
+            } else if (product.promotion.type === '2x1' && totalQuantity >= 2) {
               // Para 2x1, pagar por la mitad de los items (redondeado hacia arriba)
-              const paidItems = Math.ceil(quantity / 2);
-              total += paidItems * effectivePrice;
-            } else if (product.promotion.type === '3x2' && quantity >= 3) {
+              const paidItems = Math.ceil(totalQuantity / 2);
+              total += paidItems * basePrice;
+            } else if (product.promotion.type === '3x2' && totalQuantity >= 3) {
               // Para 3x2, calcular sets y items restantes
-              const sets = Math.floor(quantity / 3);
-              const remainder = quantity % 3;
+              const sets = Math.floor(totalQuantity / 3);
+              const remainder = totalQuantity % 3;
               const paidItems = (sets * 2) + remainder;
-              total += paidItems * effectivePrice;
-            } else if (product.promotion.type === '3x1' && quantity >= 3) {
+              total += paidItems * basePrice;
+            } else if (product.promotion.type === '3x1' && totalQuantity >= 3) {
               // Para 3x1, pagar por un item por set más los restantes
-              const sets = Math.floor(quantity / 3);
-              const remainder = quantity % 3;
+              const sets = Math.floor(totalQuantity / 3);
+              const remainder = totalQuantity % 3;
               const paidItems = sets + remainder;
-              total += paidItems * effectivePrice;
+              total += paidItems * basePrice;
             } else {
-              // Si no se cumplen las condiciones de promoción, usar precio efectivo
-              total += effectivePrice * quantity;
+              // Si no se cumplen las condiciones de promoción, usar precio base
+              total += basePrice * totalQuantity;
             }
           } else {
-            total += effectivePrice * quantity;
+            // Sin promoción, usar precio base
+            total += basePrice * totalQuantity;
           }
         });
 
