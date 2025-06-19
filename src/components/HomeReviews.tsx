@@ -3,6 +3,8 @@ import { supabase } from '../lib/supabase';
 import { Review } from '../types/index';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
+import { useAuthStore } from '../stores/authStore';
+import { toast } from 'react-hot-toast';
 
 // Componente de estrella personalizado que garantiza el relleno visual
 const StarIcon = ({ filled }: { filled: boolean }) => {
@@ -25,8 +27,10 @@ const StarIcon = ({ filled }: { filled: boolean }) => {
 };
 
 export function HomeReviews() {
+  const { user } = useAuthStore();
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadReviews();
@@ -104,6 +108,38 @@ export function HomeReviews() {
     );
   };
 
+  const handleDeleteReview = async (reviewId: string) => {
+    if (!user || user.role !== 'admin') {
+      toast.error('No tienes permisos para eliminar reseñas');
+      return;
+    }
+
+    if (!confirm('¿Estás seguro de que quieres eliminar esta reseña?')) {
+      return;
+    }
+
+    try {
+      setDeletingId(reviewId);
+      const { error } = await supabase
+        .from('reviews')
+        .delete()
+        .eq('id', reviewId);
+
+      if (error) throw error;
+
+      // Actualizar la lista local de reseñas
+      setReviews(prevReviews => prevReviews.filter(review => review.id !== reviewId));
+      toast.success('Reseña eliminada exitosamente');
+    } catch (error) {
+      console.error('Error eliminando reseña:', error);
+      toast.error('Error al eliminar la reseña');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const isAdmin = user && user.role === 'admin';
+
   if (loading) {
     return (
       <div className="animate-pulse">
@@ -138,7 +174,26 @@ export function HomeReviews() {
         <div className="mt-10">
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {reviews.map((review) => (
-              <div key={review.id} className="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
+              <div key={review.id} className="bg-gray-50 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 relative">
+                {isAdmin && (
+                  <button
+                    onClick={() => handleDeleteReview(review.id)}
+                    disabled={deletingId === review.id}
+                    className="absolute top-2 right-2 z-10 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Eliminar reseña"
+                  >
+                    {deletingId === review.id ? (
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                      </svg>
+                    )}
+                  </button>
+                )}
                 <div className="p-6">
                   <div className="flex items-center mb-4">
                     {(review as any).products?.images && (review as any).products.images.length > 0 && (

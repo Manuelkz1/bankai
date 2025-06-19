@@ -35,6 +35,7 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
   const [loading, setLoading] = useState(true);
   const [userCanReview, setUserCanReview] = useState(false);
   const [userReviewed, setUserReviewed] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [newReview, setNewReview] = useState({
     rating: 5,
     comment: ''
@@ -162,6 +163,38 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
     );
   };
 
+  const handleDeleteReview = async (reviewId: string) => {
+    if (!user || user.role !== 'admin') {
+      toast.error('No tienes permisos para eliminar reseñas');
+      return;
+    }
+
+    if (!confirm('¿Estás seguro de que quieres eliminar esta reseña?')) {
+      return;
+    }
+
+    try {
+      setDeletingId(reviewId);
+      const { error } = await supabase
+        .from('reviews')
+        .delete()
+        .eq('id', reviewId);
+
+      if (error) throw error;
+
+      // Actualizar la lista local de reseñas
+      setReviews(prevReviews => prevReviews.filter(review => review.id !== reviewId));
+      toast.success('Reseña eliminada exitosamente');
+    } catch (error) {
+      console.error('Error eliminando reseña:', error);
+      toast.error('Error al eliminar la reseña');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const isAdmin = user && user.role === 'admin';
+
   if (loading) {
     return (
       <div className="animate-pulse">
@@ -193,8 +226,27 @@ export function ProductReviews({ productId }: ProductReviewsProps) {
 
           <div className="space-y-4">
             {reviews.map((review) => (
-              <div key={review.id} className="border-b border-gray-200 pb-4">
-                <div className="flex items-center mb-2">
+              <div key={review.id} className="border-b border-gray-200 pb-4 relative">
+                {isAdmin && (
+                  <button
+                    onClick={() => handleDeleteReview(review.id)}
+                    disabled={deletingId === review.id}
+                    className="absolute top-0 right-0 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 shadow-md transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Eliminar reseña"
+                  >
+                    {deletingId === review.id ? (
+                      <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                    ) : (
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                      </svg>
+                    )}
+                  </button>
+                )}
+                <div className="flex items-center mb-2 pr-10">
                   <div className="flex items-center">
                     {renderStars(review.rating)}
                   </div>
