@@ -306,8 +306,8 @@ export function GuestCheckout() {
       return true;
     }
     if (step === 2) {
-      if (!formData.address || !formData.city || !formData.postalCode) {
-        toast.error('Por favor completa todos los campos de envío');
+      if (!formData.address || !formData.city) {
+        toast.error('Por favor completa todos los campos de envío obligatorios');
         return false;
       }
       return true;
@@ -601,7 +601,7 @@ export function GuestCheckout() {
                         </div>
                         <div>
                           <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700">
-                            Código postal
+                            Código postal <span className="text-gray-500 font-normal">(opcional)</span>
                           </label>
                           <div className="mt-1">
                             <input
@@ -611,7 +611,6 @@ export function GuestCheckout() {
                               value={formData.postalCode}
                               onChange={(e) => setFormData(prev => ({ ...prev, postalCode: e.target.value }))}
                               className="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
-                              required
                             />
                           </div>
                         </div>
