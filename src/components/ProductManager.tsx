@@ -38,7 +38,7 @@ export default function ProductManager() {
     available_sizes: [] as string[],
     show_delivery_time: false,
     delivery_time: '',
-    allowed_payment_methods: ['cod', 'mercadopago'] as string[],
+    allowed_payment_methods: { card: true, cash_on_delivery: true },
   });
   const [images, setImages] = useState<File[]>([]);
   const [instructionFile, setInstructionFile] = useState<File | null>(null);
@@ -87,7 +87,7 @@ export default function ProductManager() {
       available_sizes: [],
       show_delivery_time: false,
       delivery_time: '',
-      allowed_payment_methods: ['cod', 'mercadopago'],
+      allowed_payment_methods: { card: true, cash_on_delivery: true },
     });
     setImages([]);
     setInstructionFile(null);
@@ -131,7 +131,7 @@ export default function ProductManager() {
       available_sizes: product.available_sizes || [],
       show_delivery_time: product.show_delivery_time || false,
       delivery_time: product.delivery_time || '',
-      allowed_payment_methods: product.allowed_payment_methods || ['cod', 'mercadopago'],
+      allowed_payment_methods: product.allowed_payment_methods || { card: true, cash_on_delivery: true },
     });
     setColorStocks(initialColorStocks);
     setImages([]);
@@ -295,7 +295,7 @@ export default function ProductManager() {
         available_sizes: [],
         show_delivery_time: false,
         delivery_time: '',
-        allowed_payment_methods: ['cod', 'mercadopago'],
+        allowed_payment_methods: { card: true, cash_on_delivery: true },
       });
       setImages([]);
       setInstructionFile(null);
@@ -450,9 +450,10 @@ export default function ProductManager() {
   const handlePaymentMethodChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value, checked } = e.target;
     setFormData(prev => {
-      const allowed_payment_methods = checked
-        ? [...prev.allowed_payment_methods, value]
-        : prev.allowed_payment_methods.filter(method => method !== value);
+      const allowed_payment_methods = {
+        ...prev.allowed_payment_methods,
+        [value]: checked
+      };
       return { ...prev, allowed_payment_methods };
     });
   };
@@ -663,8 +664,8 @@ export default function ProductManager() {
                       <input
                         type="checkbox"
                         id="payment_cod"
-                        value="cod"
-                        checked={formData.allowed_payment_methods.includes('cod')}
+                        value="cash_on_delivery"
+                        checked={formData.allowed_payment_methods?.cash_on_delivery || false}
                         onChange={handlePaymentMethodChange}
                         className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                       />
@@ -676,8 +677,8 @@ export default function ProductManager() {
                       <input
                         type="checkbox"
                         id="payment_mercadopago"
-                        value="mercadopago"
-                        checked={formData.allowed_payment_methods.includes('mercadopago')}
+                        value="card"
+                        checked={formData.allowed_payment_methods?.card || false}
                         onChange={handlePaymentMethodChange}
                         className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
                       />

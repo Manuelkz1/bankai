@@ -38,7 +38,7 @@ export function GuestCheckout() {
   const { user } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
-  const [availablePaymentMethods, setAvailablePaymentMethods] = useState<string[]>(['cod', 'mercadopago']);
+  const [availablePaymentMethods, setAvailablePaymentMethods] = useState<{card: boolean, cash_on_delivery: boolean}>({card: true, cash_on_delivery: true});
   
   const [formData, setFormData] = useState<FormData>(() => {
     const saved = sessionStorage.getItem("checkout-form");
@@ -63,18 +63,23 @@ export function GuestCheckout() {
     if (cartStore.items.length > 0) {
       // Obtener todos los métodos de pago permitidos para cada producto
       const allProductMethods = cartStore.items.map(item => 
-        item.product.allowed_payment_methods || ['cod', 'mercadopago']
+        item.product.allowed_payment_methods || { card: true, cash_on_delivery: true }
       );
       
       // Encontrar la intersección de todos los métodos (solo métodos permitidos por TODOS los productos)
-      const intersection = allProductMethods.reduce((acc, methods) => 
-        acc.filter(method => methods.includes(method))
-      );
+      const intersection = {
+        card: allProductMethods.every(methods => methods.card),
+        cash_on_delivery: allProductMethods.every(methods => methods.cash_on_delivery)
+      };
       
       setAvailablePaymentMethods(intersection);
       
       // Si el método de pago actual no está disponible, limpiar la selección
-      if (formData.paymentMethod && !intersection.includes(formData.paymentMethod === 'cash_on_delivery' ? 'cod' : formData.paymentMethod)) {
+      const isCurrentMethodAvailable = 
+        (formData.paymentMethod === 'mercadopago' && intersection.card) ||
+        (formData.paymentMethod === 'cash_on_delivery' && intersection.cash_on_delivery);
+      
+      if (formData.paymentMethod && !isCurrentMethodAvailable) {
         setFormData(prev => ({ ...prev, paymentMethod: '' }));
       }
     }
@@ -653,7 +658,7 @@ export function GuestCheckout() {
                       Método de pago
                     </h2>
                     <div className="space-y-4">
-                       {availablePaymentMethods.includes("cod") && (
+                       {availablePaymentMethods.cash_on_delivery && (
                       <div className="relative">
                         <div
                           className={`flex items-center p-4 border rounded-lg cursor-pointer ${
@@ -680,7 +685,7 @@ export function GuestCheckout() {
                       </div>
 
                        )}
-                       {availablePaymentMethods.includes("mercadopago") && (
+                       {availablePaymentMethods.card && (
                       <div className="relative">
                         <div
                           className={`flex items-center p-4 border rounded-lg cursor-pointer ${
