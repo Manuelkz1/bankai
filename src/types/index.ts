@@ -15,11 +15,7 @@ export interface Product {
   show_colors?: boolean;
   show_sizes?: boolean;
   color_images?: ColorImage[];
-  allowed_payment_methods?: {
-    cash_on_delivery: boolean;
-    card: boolean;
-    payment_url?: string;
-  };
+  allowed_payment_methods?: string[];
   promotion?: Promotion;
   show_delivery_time?: boolean;
   delivery_time?: string;

@@ -653,7 +653,6 @@ export function GuestCheckout() {
                       Método de pago
                     </h2>
                     <div className="space-y-4">
-                       {availablePaymentMethods.includes("cod") && (
                       <div className="relative">
                         <div
                           className={`flex items-center p-4 border rounded-lg cursor-pointer ${
@@ -679,8 +678,6 @@ export function GuestCheckout() {
                         </div>
                       </div>
 
-                       )}
-                       {availablePaymentMethods.includes("mercadopago") && (
                       <div className="relative">
                         <div
                           className={`flex items-center p-4 border rounded-lg cursor-pointer ${
@@ -705,7 +702,6 @@ export function GuestCheckout() {
                           </div>
                         </div>
                       </div>
-                       )}
                     </div>
                   </motion.div>
                 )}

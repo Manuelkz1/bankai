@@ -38,6 +38,7 @@ export default function ProductManager() {
     available_sizes: [] as string[],
     show_delivery_time: false,
     delivery_time: '',
+    allowed_payment_methods: ['cod', 'mercadopago'] as string[],
   });
   const [images, setImages] = useState<File[]>([]);
   const [instructionFile, setInstructionFile] = useState<File | null>(null);
@@ -86,6 +87,7 @@ export default function ProductManager() {
       available_sizes: [],
       show_delivery_time: false,
       delivery_time: '',
+      allowed_payment_methods: ['cod', 'mercadopago'],
     });
     setImages([]);
     setInstructionFile(null);
@@ -129,6 +131,7 @@ export default function ProductManager() {
       available_sizes: product.available_sizes || [],
       show_delivery_time: product.show_delivery_time || false,
       delivery_time: product.delivery_time || '',
+      allowed_payment_methods: product.allowed_payment_methods || ['cod', 'mercadopago'],
     });
     setColorStocks(initialColorStocks);
     setImages([]);
@@ -253,6 +256,7 @@ export default function ProductManager() {
         available_sizes: formData.available_sizes,
         show_delivery_time: formData.show_delivery_time,
         delivery_time: formData.delivery_time,
+        allowed_payment_methods: formData.allowed_payment_methods,
       };
 
       if (editingProduct) {
@@ -291,6 +295,7 @@ export default function ProductManager() {
         available_sizes: [],
         show_delivery_time: false,
         delivery_time: '',
+        allowed_payment_methods: ['cod', 'mercadopago'],
       });
       setImages([]);
       setInstructionFile(null);
@@ -440,6 +445,16 @@ export default function ProductManager() {
       ...prev,
       [color]: Math.max(0, stock)
     }));
+  };
+
+  const handlePaymentMethodChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value, checked } = e.target;
+    setFormData(prev => {
+      const allowed_payment_methods = checked
+        ? [...prev.allowed_payment_methods, value]
+        : prev.allowed_payment_methods.filter(method => method !== value);
+      return { ...prev, allowed_payment_methods };
+    });
   };
 
   const filteredProducts = products.filter(product => 
@@ -639,6 +654,42 @@ export default function ProductManager() {
                     </p>
                   </div>
                 )}
+
+                {/* Payment Methods */}
+                <div className="border-t pt-4">
+                  <h5 className="font-medium text-gray-900 mb-3">Métodos de Pago Permitidos</h5>
+                  <div className="space-y-2">
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id="payment_cod"
+                        value="cod"
+                        checked={formData.allowed_payment_methods.includes('cod')}
+                        onChange={handlePaymentMethodChange}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <label htmlFor="payment_cod" className="ml-2 block text-sm text-gray-900">
+                        Pago contra entrega
+                      </label>
+                    </div>
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id="payment_mercadopago"
+                        value="mercadopago"
+                        checked={formData.allowed_payment_methods.includes('mercadopago')}
+                        onChange={handlePaymentMethodChange}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <label htmlFor="payment_mercadopago" className="ml-2 block text-sm text-gray-900">
+                        Pago con Mercado Pago
+                      </label>
+                    </div>
+                  </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    Selecciona los métodos de pago disponibles para este producto. Los clientes solo verán las opciones seleccionadas.
+                  </p>
+                </div>
               </div>
 
               {/* Images and Files */}
