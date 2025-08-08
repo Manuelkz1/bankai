@@ -57,6 +57,7 @@ export default function Home() {
                       height: `${Math.min(settings.logo_height || 40, 40)}px`
                     }}
                     className="object-contain"
+                    loading="lazy"
                   />
                 ) : (
                   <ShoppingBag className="h-8 w-8 text-indigo-600" />

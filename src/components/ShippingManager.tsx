@@ -239,7 +239,15 @@ export function ShippingManager() {
                     <div className="flex items-center">
                       {product.images && product.images.length > 0 && (
                         <div className="flex-shrink-0 h-10 w-10">
-                          <img className="h-10 w-10 rounded-full object-cover" src={product.images[0]} alt="" />
+                          {/*
+                           * Se agrega atributo alt descriptivo y carga diferida para
+                           * mejorar la accesibilidad y el rendimiento.  */
+                          <img
+                            className="h-10 w-10 rounded-full object-cover"
+                            src={product.images[0]}
+                            alt={product.name || 'Imagen de producto'}
+                            loading="lazy"
+                          />
                         </div>
                       )}
                       <div className="ml-4">

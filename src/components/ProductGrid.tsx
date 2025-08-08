@@ -388,6 +388,7 @@ export function ProductGrid() {
                 src={product.images?.[0]}
                 alt={product.name}
                 className="w-full h-48 object-cover"
+                loading="lazy"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
                   target.src = 'https://via.placeholder.com/400x300?text=No+Image';
